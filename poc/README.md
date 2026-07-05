@@ -39,6 +39,7 @@ DETECT_CONFIDENCE=0.45
 DETECT_EVERY_N_FRAMES=3
 YOLO_MODEL=yolo11n.pt
 HAND_MODEL_PATH=models/hand_landmarker.task
+ONVIF_PORT=2020
 ```
 
 ## Run
@@ -62,3 +63,5 @@ http://127.0.0.1:8000
 - Unsupported labels, such as `hat` with the default COCO model, are reported in `/api/status` and do not stop the stream.
 - If the RTSP source drops, the server keeps running and shows a placeholder image.
 - `GET /api/status` returns the current camera status.
+- `POST /api/direction` accepts `horizontal` and `vertical` values from `-100` to `100`.
+- Camera movement uses ONVIF absolute PTZ on `ONVIF_PORT`.

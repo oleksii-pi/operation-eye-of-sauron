@@ -3,8 +3,10 @@ from urllib.parse import urlsplit, urlunsplit
 
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from pydantic import BaseModel
 
 from app.camera import CameraStream
+from app.camera_direction import CameraDirection
 from app.config import get_settings
 from app.object_detector import ObjectDetector
 
@@ -25,8 +27,14 @@ camera = CameraStream(
     fps=settings.stream_fps,
     detector=detector,
 )
+direction = CameraDirection(settings.rtsp_url, settings.onvif_port)
 app = FastAPI(title="Camera PoC")
 index_file = Path(__file__).resolve().parent / "static" / "index.html"
+
+
+class DirectionRequest(BaseModel):
+    horizontal: int
+    vertical: int
 
 
 @app.on_event("startup")
@@ -69,7 +77,13 @@ def status() -> JSONResponse:
             "detection": detector.info(),
         },
         "camera": camera.info(),
+        "direction": direction.info(),
     })
+
+
+@app.post("/api/direction")
+def move_direction(request: DirectionRequest) -> JSONResponse:
+    return JSONResponse(direction.move(request.horizontal, request.vertical))
 
 
 def masked_url(url: str) -> str:

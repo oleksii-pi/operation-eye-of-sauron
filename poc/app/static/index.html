@@ -18,6 +18,9 @@
     main { width: min(96vw, 980px); padding: 16px; }
     h1 { margin: 0 0 12px; font-size: 22px; }
     p { margin: 0 0 16px; color: #bbb; }
+    .stream {
+      position: relative;
+    }
     img {
       width: 100%;
       height: auto;
@@ -26,6 +29,41 @@
       background: #000;
       display: block;
     }
+    .controls {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display: grid;
+      gap: 8px;
+      padding: 10px;
+      width: 220px;
+      box-sizing: border-box;
+      border: 1px solid #444;
+      border-radius: 8px;
+      background: rgb(0 0 0 / 70%);
+    }
+    .control {
+      display: grid;
+      grid-template-columns: 1fr 42px;
+      gap: 8px;
+      align-items: center;
+      font-size: 12px;
+      color: #ddd;
+    }
+    label {
+      grid-column: 1 / -1;
+      display: flex;
+      justify-content: space-between;
+    }
+    input[type="range"] {
+      width: 200px;
+      max-width: 100%;
+      accent-color: #5fd18d;
+    }
+    output {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
     .hint { margin-top: 12px; font-size: 14px; color: #888; }
   </style>
 </head>
@@ -33,9 +71,92 @@
   <main>
     <h1>Camera PoC</h1>
     <p>Live view from the RTSP camera stream.</p>
-    <img src="/stream.mjpg" alt="Camera stream">
+    <div class="stream">
+      <img src="/stream.mjpg" alt="Camera stream">
+      <div class="controls">
+        <div class="control">
+          <label for="horizontal"><span>Horizontal</span><output id="horizontalValue">0</output></label>
+          <input id="horizontal" type="range" min="-100" max="100" value="0" step="1">
+        </div>
+        <div class="control">
+          <label for="vertical"><span>Vertical</span><output id="verticalValue">0</output></label>
+          <input id="vertical" type="range" min="-100" max="100" value="0" step="1">
+        </div>
+      </div>
+    </div>
     <div class="hint">If the camera is offline, the page shows a placeholder frame with status text.</div>
   </main>
+  <script>
+    const horizontal = document.querySelector("#horizontal");
+    const vertical = document.querySelector("#vertical");
+    const horizontalValue = document.querySelector("#horizontalValue");
+    const verticalValue = document.querySelector("#verticalValue");
+    let sendTimer;
+
+    function clamp(value) {
+      return Math.max(-100, Math.min(100, value));
+    }
+
+    function renderValues() {
+      horizontalValue.value = horizontal.value;
+      verticalValue.value = vertical.value;
+    }
+
+    function postDirection() {
+      return fetch("/api/direction", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          horizontal: Number(horizontal.value),
+          vertical: Number(vertical.value),
+        }),
+      }).catch(() => {});
+    }
+
+    function sendDirection() {
+      clearTimeout(sendTimer);
+      sendTimer = setTimeout(postDirection, 80);
+    }
+
+    function setDirection(nextHorizontal, nextVertical) {
+      horizontal.value = clamp(nextHorizontal);
+      vertical.value = clamp(nextVertical);
+      renderValues();
+      sendDirection();
+    }
+
+    function moveBy(deltaHorizontal, deltaVertical) {
+      setDirection(Number(horizontal.value) + deltaHorizontal, Number(vertical.value) + deltaVertical);
+    }
+
+    function centerDirection() {
+      horizontal.value = 0;
+      vertical.value = 0;
+      renderValues();
+      postDirection();
+    }
+
+    [horizontal, vertical].forEach((slider) => {
+      slider.addEventListener("input", () => {
+        renderValues();
+        sendDirection();
+      });
+    });
+
+    document.addEventListener("keydown", (event) => {
+      const moves = {
+        ArrowLeft: [-1, 0],
+        ArrowRight: [1, 0],
+        ArrowUp: [0, 1],
+        ArrowDown: [0, -1],
+      };
+      const move = moves[event.key];
+      if (!move) return;
+      event.preventDefault();
+      moveBy(move[0], move[1]);
+    });
+
+    centerDirection();
+  </script>
 </body>
 </html>
-

@@ -28,6 +28,7 @@ class Settings:
     detect_every_n_frames: int
     yolo_model: str
     hand_model_path: str
+    onvif_port: int
 
 
 def int_env(name: str, default: int) -> int:
@@ -57,4 +58,5 @@ def get_settings() -> Settings:
         detect_every_n_frames=max(1, int_env("DETECT_EVERY_N_FRAMES", 3)),
         yolo_model=os.getenv("YOLO_MODEL", "yolo11n.pt").strip() or "yolo11n.pt",
         hand_model_path=os.getenv("HAND_MODEL_PATH", "models/hand_landmarker.task").strip(),
+        onvif_port=max(1, int_env("ONVIF_PORT", 2020)),
     )
