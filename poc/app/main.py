@@ -6,15 +6,24 @@ from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 
 from app.camera import CameraStream
 from app.config import get_settings
+from app.object_detector import ObjectDetector
 
 
 settings = get_settings()
+detector = ObjectDetector(
+    settings.detect_object,
+    settings.detect_confidence,
+    settings.detect_every_n_frames,
+    settings.yolo_model,
+    settings.hand_model_path,
+)
 camera = CameraStream(
     settings.rtsp_url,
     width=settings.stream_width,
     height=settings.stream_height,
     jpeg_quality=settings.jpeg_quality,
     fps=settings.stream_fps,
+    detector=detector,
 )
 app = FastAPI(title="Camera PoC")
 index_file = Path(__file__).resolve().parent / "static" / "index.html"
@@ -54,7 +63,11 @@ def status() -> JSONResponse:
         "fps": settings.stream_fps,
     }
     return JSONResponse({
-        "settings": {"rtsp_url": masked_url(settings.rtsp_url), "stream": stream},
+        "settings": {
+            "rtsp_url": masked_url(settings.rtsp_url),
+            "stream": stream,
+            "detection": detector.info(),
+        },
         "camera": camera.info(),
     })
 

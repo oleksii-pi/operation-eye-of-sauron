@@ -10,6 +10,8 @@ os.environ["OPENCV_FFMPEG_LOGLEVEL"] = "-8"
 import cv2
 import numpy as np
 
+from app.object_detector import ObjectDetector
+
 LOW_LATENCY_FFMPEG_OPTIONS = (
     ("rtsp_transport", "tcp"),
     ("fflags", "nobuffer"),
@@ -55,6 +57,7 @@ class CameraStream:
         jpeg_quality: int = 90,
         fps: float = 15.0,
         retry_seconds: float = 3.0,
+        detector: ObjectDetector | None = None,
     ):
         self.rtsp_url = rtsp_url
         self.width = width
@@ -62,6 +65,7 @@ class CameraStream:
         self.jpeg_quality = jpeg_quality
         self.frame_delay = 1.0 / fps
         self.retry_seconds = retry_seconds
+        self.detector = detector
         self._lock = threading.Lock()
         self._frame = self._placeholder("Waiting for RTSP URL")
         self._status = "starting"
@@ -145,6 +149,8 @@ class CameraStream:
                     self._set_frame(self._placeholder("Stream lost, reconnecting"), "reconnecting")
                     break
                 frame = self._resize(frame)
+                if self.detector:
+                    frame = self.detector.annotate(frame)
                 self._set_frame(encode_jpeg(frame, self.jpeg_quality), "live")
             capture.release()
             time.sleep(self.retry_seconds)
