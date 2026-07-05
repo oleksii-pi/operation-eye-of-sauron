@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Camera PoC</title>
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: #111;
+      color: #eee;
+      font-family: Arial, sans-serif;
+    }
+    main { width: min(96vw, 980px); padding: 16px; }
+    h1 { margin: 0 0 12px; font-size: 22px; }
+    p { margin: 0 0 16px; color: #bbb; }
+    img {
+      width: 100%;
+      height: auto;
+      border: 1px solid #444;
+      border-radius: 12px;
+      background: #000;
+      display: block;
+    }
+    .hint { margin-top: 12px; font-size: 14px; color: #888; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Camera PoC</h1>
+    <p>Live view from the RTSP camera stream.</p>
+    <img src="/stream.mjpg" alt="Camera stream">
+    <div class="hint">If the camera is offline, the page shows a placeholder frame with status text.</div>
+  </main>
+</body>
+</html>
+
