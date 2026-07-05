@@ -64,6 +64,28 @@
       text-align: right;
       font-variant-numeric: tabular-nums;
     }
+    button {
+      height: 34px;
+      border: 1px solid #666;
+      border-radius: 6px;
+      background: #1b1b1b;
+      color: #eee;
+      cursor: pointer;
+    }
+    #record {
+      width: 100px;
+    }
+    button.recording {
+      border-color: #f06d6d;
+      background: #521b1b;
+    }
+    .record-status {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      font-size: 12px;
+      color: #bbb;
+    }
     .hint { margin-top: 12px; font-size: 14px; color: #888; }
   </style>
 </head>
@@ -82,6 +104,8 @@
           <label for="vertical"><span>Vertical</span><output id="verticalValue">0</output></label>
           <input id="vertical" type="range" min="-100" max="100" value="0" step="1">
         </div>
+        <button id="record" type="button">Record</button>
+        <div id="recordStatus" class="record-status">Not recording</div>
       </div>
     </div>
     <div class="hint">If the camera is offline, the page shows a placeholder frame with status text.</div>
@@ -91,7 +115,10 @@
     const vertical = document.querySelector("#vertical");
     const horizontalValue = document.querySelector("#horizontalValue");
     const verticalValue = document.querySelector("#verticalValue");
+    const record = document.querySelector("#record");
+    const recordStatus = document.querySelector("#recordStatus");
     let sendTimer;
+    let isRecording = false;
 
     function clamp(value) {
       return Math.max(-100, Math.min(100, value));
@@ -136,12 +163,39 @@
       postDirection();
     }
 
+    function renderRecording(file, error) {
+      record.textContent = isRecording ? "Stop" : "Record";
+      record.classList.toggle("recording", isRecording);
+      recordStatus.textContent = error || (isRecording ? file || "Recording" : "Not recording");
+      recordStatus.title = recordStatus.textContent;
+    }
+
+    function applyRecording(data) {
+      isRecording = Boolean(data.recording);
+      renderRecording(data.file, data.error || "");
+    }
+
+    function toggleRecording() {
+      const path = isRecording ? "/api/recording/stop" : "/api/recording/start";
+      record.disabled = true;
+      fetch(path, { method: "POST" })
+        .then((response) => {
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          return response.json();
+        })
+        .then(applyRecording)
+        .catch((error) => renderRecording("", `Recording request failed: ${error.message}`))
+        .finally(() => { record.disabled = false; });
+    }
+
     [horizontal, vertical].forEach((slider) => {
       slider.addEventListener("input", () => {
         renderValues();
         sendDirection();
       });
     });
+
+    record.addEventListener("click", toggleRecording);
 
     document.addEventListener("keydown", (event) => {
       const moves = {
@@ -157,6 +211,10 @@
     });
 
     centerDirection();
+    fetch("/api/status")
+      .then((response) => response.json())
+      .then((data) => applyRecording(data.recording || {}))
+      .catch(() => {});
   </script>
 </body>
 </html>

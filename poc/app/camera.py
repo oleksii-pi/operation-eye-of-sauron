@@ -11,6 +11,7 @@ import cv2
 import numpy as np
 
 from app.object_detector import ObjectDetector
+from app.recorder import FrameRecorder
 
 LOW_LATENCY_FFMPEG_OPTIONS = (
     ("rtsp_transport", "tcp"),
@@ -58,6 +59,7 @@ class CameraStream:
         fps: float = 15.0,
         retry_seconds: float = 3.0,
         detector: ObjectDetector | None = None,
+        recorder: FrameRecorder | None = None,
     ):
         self.rtsp_url = rtsp_url
         self.width = width
@@ -66,6 +68,7 @@ class CameraStream:
         self.frame_delay = 1.0 / fps
         self.retry_seconds = retry_seconds
         self.detector = detector
+        self.recorder = recorder
         self._lock = threading.Lock()
         self._frame = self._placeholder("Waiting for RTSP URL")
         self._status = "starting"
@@ -83,10 +86,27 @@ class CameraStream:
         self._running = False
         if self._thread:
             self._thread.join(timeout=2)
+        if self.recorder:
+            self.recorder.stop()
 
     def info(self) -> dict[str, str]:
         with self._lock:
             return {"status": self._status, "rtsp_url_set": str(bool(self.rtsp_url))}
+
+    def start_recording(self) -> dict[str, str | bool]:
+        if not self.recorder:
+            return {"recording": False, "file": ""}
+        return self.recorder.start()
+
+    def stop_recording(self) -> dict[str, str | bool]:
+        if not self.recorder:
+            return {"recording": False, "file": ""}
+        return self.recorder.stop()
+
+    def recording_info(self) -> dict[str, str | bool]:
+        if not self.recorder:
+            return {"recording": False, "file": ""}
+        return self.recorder.info()
 
     def snapshot(self) -> bytes:
         with self._lock:
@@ -151,6 +171,8 @@ class CameraStream:
                 frame = self._resize(frame)
                 if self.detector:
                     frame = self.detector.annotate(frame)
+                if self.recorder:
+                    self.recorder.write(frame)
                 self._set_frame(encode_jpeg(frame, self.jpeg_quality), "live")
             capture.release()
             time.sleep(self.retry_seconds)

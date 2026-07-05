@@ -9,9 +9,11 @@ from app.camera import CameraStream
 from app.camera_direction import CameraDirection
 from app.config import get_settings
 from app.object_detector import ObjectDetector
+from app.recorder import FrameRecorder
 
 
 settings = get_settings()
+recordings_dir = Path(__file__).resolve().parents[1] / "recordings"
 detector = ObjectDetector(
     settings.detect_object,
     settings.detect_confidence,
@@ -26,6 +28,7 @@ camera = CameraStream(
     jpeg_quality=settings.jpeg_quality,
     fps=settings.stream_fps,
     detector=detector,
+    recorder=FrameRecorder(recordings_dir),
 )
 direction = CameraDirection(settings.rtsp_url, settings.onvif_port)
 app = FastAPI(title="Camera PoC")
@@ -49,7 +52,10 @@ def shutdown() -> None:
 
 @app.get("/", response_class=HTMLResponse)
 def index() -> HTMLResponse:
-    return HTMLResponse(index_file.read_text(encoding="utf-8"))
+    return HTMLResponse(
+        index_file.read_text(encoding="utf-8"),
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 @app.get("/stream.mjpg")
@@ -77,8 +83,19 @@ def status() -> JSONResponse:
             "detection": detector.info(),
         },
         "camera": camera.info(),
+        "recording": camera.recording_info(),
         "direction": direction.info(),
     })
+
+
+@app.post("/api/recording/start")
+def start_recording() -> JSONResponse:
+    return JSONResponse(camera.start_recording())
+
+
+@app.post("/api/recording/stop")
+def stop_recording() -> JSONResponse:
+    return JSONResponse(camera.stop_recording())
 
 
 @app.post("/api/direction")

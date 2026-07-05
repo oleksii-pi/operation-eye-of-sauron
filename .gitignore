@@ -6,3 +6,4 @@ poc/.env
 poc/__pycache__/
 poc/.venv/
 poc/**/*.pyc
+poc/recordings/
