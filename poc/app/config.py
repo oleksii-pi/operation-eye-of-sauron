@@ -19,10 +19,32 @@ def load_dotenv_file(path: str = ".env") -> None:
 @dataclass(frozen=True)
 class Settings:
     rtsp_url: str
+    stream_width: int
+    stream_height: int
+    jpeg_quality: int
+    stream_fps: float
+
+
+def int_env(name: str, default: int) -> int:
+    try:
+        return int(os.getenv(name, str(default)))
+    except ValueError:
+        return default
+
+
+def float_env(name: str, default: float) -> float:
+    try:
+        return float(os.getenv(name, str(default)))
+    except ValueError:
+        return default
 
 
 def get_settings() -> Settings:
     load_dotenv_file()
     return Settings(
         rtsp_url=os.getenv("RTSP_URL", "").strip(),
+        stream_width=max(320, int_env("STREAM_WIDTH", 1280)),
+        stream_height=max(180, int_env("STREAM_HEIGHT", 720)),
+        jpeg_quality=min(100, max(50, int_env("JPEG_QUALITY", 90))),
+        stream_fps=min(30.0, max(1.0, float_env("STREAM_FPS", 15.0))),
     )

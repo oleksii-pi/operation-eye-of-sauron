@@ -29,6 +29,10 @@ cp .env.example .env
 
 ```env
 RTSP_URL=rtsp://user:password@camera-ip:554/stream1
+STREAM_WIDTH=1280
+STREAM_HEIGHT=720
+JPEG_QUALITY=90
+STREAM_FPS=15
 ```
 
 ## Run
@@ -46,6 +50,6 @@ http://127.0.0.1:8000
 ## Notes
 
 - The page uses a simple `<img>` tag with an MJPEG stream.
+- Stream quality can be tuned with `STREAM_WIDTH`, `STREAM_HEIGHT`, `JPEG_QUALITY`, and `STREAM_FPS`.
 - If the RTSP source drops, the server keeps running and shows a placeholder image.
 - `GET /api/status` returns the current camera status.
-

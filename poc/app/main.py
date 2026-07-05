@@ -9,7 +9,13 @@ from app.config import get_settings
 
 
 settings = get_settings()
-camera = CameraStream(settings.rtsp_url)
+camera = CameraStream(
+    settings.rtsp_url,
+    width=settings.stream_width,
+    height=settings.stream_height,
+    jpeg_quality=settings.jpeg_quality,
+    fps=settings.stream_fps,
+)
 app = FastAPI(title="Camera PoC")
 index_file = Path(__file__).resolve().parent / "static" / "index.html"
 
@@ -31,12 +37,26 @@ def index() -> HTMLResponse:
 
 @app.get("/stream.mjpg")
 def stream() -> StreamingResponse:
-    return StreamingResponse(camera.stream(), media_type="multipart/x-mixed-replace; boundary=frame")
+    headers = {"Cache-Control": "no-store", "Pragma": "no-cache", "X-Accel-Buffering": "no"}
+    return StreamingResponse(
+        camera.stream(),
+        headers=headers,
+        media_type="multipart/x-mixed-replace; boundary=frame",
+    )
 
 
 @app.get("/api/status")
 def status() -> JSONResponse:
-    return JSONResponse({"settings": {"rtsp_url": masked_url(settings.rtsp_url)}, "camera": camera.info()})
+    stream = {
+        "width": settings.stream_width,
+        "height": settings.stream_height,
+        "jpeg_quality": settings.jpeg_quality,
+        "fps": settings.stream_fps,
+    }
+    return JSONResponse({
+        "settings": {"rtsp_url": masked_url(settings.rtsp_url), "stream": stream},
+        "camera": camera.info(),
+    })
 
 
 def masked_url(url: str) -> str:
