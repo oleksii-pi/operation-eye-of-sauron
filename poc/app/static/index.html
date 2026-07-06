@@ -3,31 +3,43 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Camera PoC</title>
+  <title>Operation Yey of Sauron</title>
   <style>
     :root { color-scheme: dark; }
     body {
       margin: 0;
-      min-height: 100vh;
-      display: grid;
-      place-items: center;
+      height: 100vh;
+      overflow: hidden;
       background: #111;
       color: #eee;
       font-family: Arial, sans-serif;
     }
-    main { width: min(96vw, 980px); padding: 16px; }
-    h1 { margin: 0 0 12px; font-size: 22px; }
+    main {
+      width: 100vw;
+      height: 100vh;
+    }
+    h1 {
+      color: red;
+      position: absolute;
+      z-index: 2;
+      left: 12px;
+      top: 40px;
+      margin: 0;
+      font-size: 18px;
+      text-shadow: 0 1px 3px #000;
+    }
     p { margin: 0 0 16px; color: #bbb; }
     .stream {
       position: relative;
+      width: 100%;
+      height: 100%;
     }
     img {
       width: 100%;
-      height: auto;
-      border: 1px solid #444;
-      border-radius: 12px;
+      height: 100%;
       background: #000;
       display: block;
+      object-fit: cover;
     }
     .controls {
       position: absolute;
@@ -91,8 +103,7 @@
 </head>
 <body>
   <main>
-    <h1>Camera PoC</h1>
-    <p>Live view from the RTSP camera stream.</p>
+    <h1>Operation "Eye of Sauron"</h1>
     <div class="stream">
       <img src="/stream.mjpg" alt="Camera stream">
       <div class="controls">
@@ -108,7 +119,6 @@
         <div id="recordStatus" class="record-status">Not recording</div>
       </div>
     </div>
-    <div class="hint">If the camera is offline, the page shows a placeholder frame with status text.</div>
   </main>
   <script>
     const horizontal = document.querySelector("#horizontal");
