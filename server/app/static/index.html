@@ -6,6 +6,9 @@
   <title>Operation Yey of Sauron</title>
   <style>
     :root { color-scheme: dark; }
+    * {
+      box-sizing: border-box;
+    }
     body {
       margin: 0;
       height: 100vh;
@@ -59,22 +62,25 @@
       border-radius: 8px;
       background: rgb(0 0 0 / 70%);
     }
+    .controls > * {
+      min-width: 0;
+    }
     .control {
       display: grid;
-      grid-template-columns: 1fr 42px;
       gap: 8px;
       align-items: center;
       font-size: 12px;
       color: #ddd;
     }
-    label {
-      grid-column: 1 / -1;
-      display: flex;
-      justify-content: space-between;
+    .control label {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 34px;
+      gap: 8px;
+      align-items: center;
     }
     input[type="range"] {
-      width: 200px;
-      max-width: 100%;
+      width: 100%;
+      min-width: 0;
       accent-color: #5fd18d;
     }
     output {
@@ -91,6 +97,11 @@
     }
     #record {
       width: 100px;
+    }
+    button:disabled,
+    input:disabled {
+      opacity: 0.65;
+      cursor: wait;
     }
     button.recording {
       border-color: #f06d6d;
@@ -116,6 +127,32 @@
       height: 16px;
       accent-color: #5fd18d;
     }
+    .follow-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 40px;
+      gap: 8px;
+      align-items: stretch;
+      min-width: 0;
+      width: 100%;
+    }
+    #follow {
+      width: 100%;
+      min-width: 0;
+    }
+    .steps-input {
+      width: 100%;
+      height: 34px;
+      min-width: 0;
+      padding: 0 4px;
+      box-sizing: border-box;
+      border: 1px solid #666;
+      border-radius: 6px;
+      background: #111;
+      color: #eee;
+      font-size: 14px;
+      font-weight: 700;
+      text-align: center;
+    }
     .motor-status {
       min-height: 14px;
       overflow: hidden;
@@ -131,7 +168,7 @@
   <main>
     <h1>Operation "Eye of Sauron"</h1>
     <div class="stream">
-      <img src="/stream.mjpg" alt="Camera stream">
+      <img id="streamImage" alt="Camera stream">
       <div class="controls">
         <div class="control">
           <label for="horizontal"><span>Horizontal</span><output id="horizontalValue">0</output></label>
@@ -145,6 +182,11 @@
           <label for="motionSize"><span>Motion size, cm</span><output id="motionSizeValue">5</output></label>
           <input id="motionSize" type="range" min="1" max="50" value="5" step="1">
         </div>
+        <div class="follow-row">
+          <button id="follow" type="button">Follow</button>
+          <input id="followSteps" class="steps-input" type="number" min="1" max="5" value="3" step="1" aria-label="Follow steps">
+        </div>
+        <div id="followStatus" class="motor-status">Follow idle</div>
         <button id="record" type="button">Record</button>
         <div id="recordStatus" class="record-status">Not recording</div>
         <label class="check" for="motorOn">
@@ -162,6 +204,10 @@
     const horizontalValue = document.querySelector("#horizontalValue");
     const verticalValue = document.querySelector("#verticalValue");
     const motionSizeValue = document.querySelector("#motionSizeValue");
+    const streamImage = document.querySelector("#streamImage");
+    const follow = document.querySelector("#follow");
+    const followSteps = document.querySelector("#followSteps");
+    const followStatus = document.querySelector("#followStatus");
     const record = document.querySelector("#record");
     const recordStatus = document.querySelector("#recordStatus");
     const motorOn = document.querySelector("#motorOn");
@@ -169,6 +215,11 @@
     let sendTimer;
     let motionTimer;
     let isRecording = false;
+    let streamLagMs = 1000;
+    let lastMoveStartedAt = 0;
+    const streamUrl = "/stream.mjpg";
+    const followIdleExtraMs = 500;
+    const pageStartedAt = performance.now();
 
     function clamp(value) {
       return Math.max(-100, Math.min(100, value));
@@ -181,6 +232,7 @@
     }
 
     function postDirection() {
+      lastMoveStartedAt = performance.now();
       return fetch("/api/direction", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -225,6 +277,47 @@
       vertical.value = 0;
       renderValues();
       postDirection();
+    }
+
+    function renderFollow(data) {
+      const steps = data.adjustments ? data.adjustments.length : 0;
+      const maxSteps = clampSteps(followSteps.value);
+      followStatus.textContent = `${data.status || "done"} · ${steps}/${maxSteps} · ${Math.round((data.lag_seconds || 1) * 1000)}ms`;
+      followStatus.title = followStatus.textContent;
+      if (data.direction) {
+        horizontal.value = data.direction.horizontal;
+        vertical.value = data.direction.vertical;
+        renderValues();
+      }
+    }
+
+    function runFollow() {
+      followSteps.value = clampSteps(followSteps.value);
+      follow.disabled = true;
+      followSteps.disabled = true;
+      followStatus.textContent = "Following...";
+      fetch("/api/follow", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lag_ms: streamLagMs, max_adjustments: Number(followSteps.value) }),
+      })
+        .then((response) => {
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          return response.json();
+        })
+        .then(renderFollow)
+        .catch((error) => {
+          followStatus.textContent = `Follow failed: ${error.message}`;
+          followStatus.title = followStatus.textContent;
+        })
+        .finally(() => {
+          follow.disabled = false;
+          followSteps.disabled = false;
+        });
+    }
+
+    function clampSteps(value) {
+      return Math.max(1, Math.min(5, Number(value) || 3));
     }
 
     function renderRecording(file, error) {
@@ -292,7 +385,17 @@
     });
 
     record.addEventListener("click", toggleRecording);
+    follow.addEventListener("click", runFollow);
+    followSteps.addEventListener("change", () => { followSteps.value = clampSteps(followSteps.value); });
     motorOn.addEventListener("change", toggleMotor);
+
+    streamImage.addEventListener("load", () => {
+      const startedAt = lastMoveStartedAt || pageStartedAt;
+      const measuredLagMs = Math.round(performance.now() - startedAt);
+      streamLagMs = Math.max(1200, Math.min(4000, measuredLagMs + followIdleExtraMs));
+      followStatus.textContent = `Follow idle · ${streamLagMs}ms`;
+      followStatus.title = followStatus.textContent;
+    }, { once: true });
 
     document.addEventListener("keydown", (event) => {
       const moves = {
@@ -308,6 +411,7 @@
     });
 
     centerDirection();
+    streamImage.src = streamUrl;
     fetch("/api/status")
       .then((response) => response.json())
       .then((data) => {

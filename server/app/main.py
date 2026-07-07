@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from app.camera import CameraStream
 from app.camera_direction import CameraDirection
 from app.config import get_settings
+from app.follow import FollowController
 from app.motion_detector import MotionDetector
 from app.motor_control import MotorControl
 from app.recorder import FrameRecorder
@@ -31,6 +32,7 @@ camera = CameraStream(
 )
 direction = CameraDirection(settings.rtsp_url, settings.onvif_port)
 motor = MotorControl(settings.motor_server_ip)
+follower = FollowController(direction, detector, settings.stream_width, settings.stream_height)
 app = FastAPI(title="operation-eye-of-sauron")
 index_file = Path(__file__).resolve().parent / "static" / "index.html"
 
@@ -46,6 +48,11 @@ class MotionSizeRequest(BaseModel):
 
 class MotorRequest(BaseModel):
     enabled: bool
+
+
+class FollowRequest(BaseModel):
+    lag_ms: int = 1000
+    max_adjustments: int = 3
 
 
 @app.on_event("startup")
@@ -120,6 +127,13 @@ def set_motion_size(request: MotionSizeRequest) -> JSONResponse:
 @app.post("/api/motor")
 def set_motor(request: MotorRequest) -> JSONResponse:
     return JSONResponse(motor.set_enabled(request.enabled))
+
+
+@app.post("/api/follow")
+def follow(request: FollowRequest) -> JSONResponse:
+    lag_seconds = min(4.0, max(1.2, request.lag_ms / 1000))
+    max_adjustments = min(5, max(1, request.max_adjustments))
+    return JSONResponse(follower.follow(lag_seconds, max_adjustments))
 
 
 def masked_url(url: str) -> str:
