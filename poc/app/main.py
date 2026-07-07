@@ -8,18 +8,16 @@ from pydantic import BaseModel
 from app.camera import CameraStream
 from app.camera_direction import CameraDirection
 from app.config import get_settings
-from app.object_detector import ObjectDetector
+from app.motion_detector import MotionDetector
 from app.recorder import FrameRecorder
 
 
 settings = get_settings()
 recordings_dir = Path(__file__).resolve().parents[1] / "recordings"
-detector = ObjectDetector(
-    settings.detect_object,
-    settings.detect_confidence,
-    settings.detect_every_n_frames,
-    settings.yolo_model,
-    settings.hand_model_path,
+detector = MotionDetector(
+    settings.motion_min_size_cm,
+    settings.motion_distance_cm,
+    settings.motion_horizontal_fov_degrees,
 )
 camera = CameraStream(
     settings.rtsp_url,
@@ -31,13 +29,17 @@ camera = CameraStream(
     recorder=FrameRecorder(recordings_dir),
 )
 direction = CameraDirection(settings.rtsp_url, settings.onvif_port)
-app = FastAPI(title="Camera PoC")
+app = FastAPI(title="operation-eye-of-sauron")
 index_file = Path(__file__).resolve().parent / "static" / "index.html"
 
 
 class DirectionRequest(BaseModel):
     horizontal: int
     vertical: int
+
+
+class MotionSizeRequest(BaseModel):
+    min_size_cm: float
 
 
 @app.on_event("startup")
@@ -101,6 +103,11 @@ def stop_recording() -> JSONResponse:
 @app.post("/api/direction")
 def move_direction(request: DirectionRequest) -> JSONResponse:
     return JSONResponse(direction.move(request.horizontal, request.vertical))
+
+
+@app.post("/api/motion-size")
+def set_motion_size(request: MotionSizeRequest) -> JSONResponse:
+    return JSONResponse(detector.set_min_size_cm(request.min_size_cm))
 
 
 def masked_url(url: str) -> str:

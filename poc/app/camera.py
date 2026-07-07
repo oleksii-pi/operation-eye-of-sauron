@@ -10,7 +10,7 @@ os.environ["OPENCV_FFMPEG_LOGLEVEL"] = "-8"
 import cv2
 import numpy as np
 
-from app.object_detector import ObjectDetector
+from app.motion_detector import MotionDetector
 from app.recorder import FrameRecorder
 
 LOW_LATENCY_FFMPEG_OPTIONS = (
@@ -36,7 +36,7 @@ def placeholder_frame(message: str, size: tuple[int, int] = (1280, 720), quality
     width, height = size
     frame = np.zeros((height, width, 3), dtype=np.uint8)
     frame[:] = (24, 24, 24)
-    cv2.putText(frame, "Camera PoC", (24, 56), cv2.FONT_HERSHEY_SIMPLEX, 1.1, (255, 255, 255), 2)
+    cv2.putText(frame, "Web Cam", (24, 56), cv2.FONT_HERSHEY_SIMPLEX, 1.1, (255, 255, 255), 2)
     cv2.putText(frame, message, (24, 112), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (180, 220, 255), 2)
     cv2.rectangle(frame, (18, 18), (width - 18, height - 18), (90, 90, 90), 2)
     return encode_jpeg(frame, quality)
@@ -58,7 +58,7 @@ class CameraStream:
         jpeg_quality: int = 90,
         fps: float = 15.0,
         retry_seconds: float = 3.0,
-        detector: ObjectDetector | None = None,
+        detector: MotionDetector | None = None,
         recorder: FrameRecorder | None = None,
     ):
         self.rtsp_url = rtsp_url

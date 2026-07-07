@@ -19,14 +19,19 @@
       height: 100vh;
     }
     h1 {
+      animation: blink 2s steps(1, end) infinite;
       color: red;
       position: absolute;
       z-index: 2;
-      left: 12px;
-      top: 40px;
+      left: 24px;
+      top: 60px;
       margin: 0;
       font-size: 18px;
       text-shadow: 0 1px 3px #000;
+    }
+    @keyframes blink {
+      0%, 49.9% { opacity: 1; }
+      50%, 100% { opacity: 0; }
     }
     p { margin: 0 0 16px; color: #bbb; }
     .stream {
@@ -115,6 +120,10 @@
           <label for="vertical"><span>Vertical</span><output id="verticalValue">0</output></label>
           <input id="vertical" type="range" min="-100" max="100" value="0" step="1">
         </div>
+        <div class="control">
+          <label for="motionSize"><span>Motion size, cm</span><output id="motionSizeValue">5</output></label>
+          <input id="motionSize" type="range" min="1" max="50" value="5" step="1">
+        </div>
         <button id="record" type="button">Record</button>
         <div id="recordStatus" class="record-status">Not recording</div>
       </div>
@@ -123,11 +132,14 @@
   <script>
     const horizontal = document.querySelector("#horizontal");
     const vertical = document.querySelector("#vertical");
+    const motionSize = document.querySelector("#motionSize");
     const horizontalValue = document.querySelector("#horizontalValue");
     const verticalValue = document.querySelector("#verticalValue");
+    const motionSizeValue = document.querySelector("#motionSizeValue");
     const record = document.querySelector("#record");
     const recordStatus = document.querySelector("#recordStatus");
     let sendTimer;
+    let motionTimer;
     let isRecording = false;
 
     function clamp(value) {
@@ -137,6 +149,7 @@
     function renderValues() {
       horizontalValue.value = horizontal.value;
       verticalValue.value = vertical.value;
+      motionSizeValue.value = motionSize.value;
     }
 
     function postDirection() {
@@ -153,6 +166,19 @@
     function sendDirection() {
       clearTimeout(sendTimer);
       sendTimer = setTimeout(postDirection, 80);
+    }
+
+    function postMotionSize() {
+      return fetch("/api/motion-size", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ min_size_cm: Number(motionSize.value) }),
+      }).catch(() => {});
+    }
+
+    function sendMotionSize() {
+      clearTimeout(motionTimer);
+      motionTimer = setTimeout(postMotionSize, 120);
     }
 
     function setDirection(nextHorizontal, nextVertical) {
@@ -205,6 +231,11 @@
       });
     });
 
+    motionSize.addEventListener("input", () => {
+      renderValues();
+      sendMotionSize();
+    });
+
     record.addEventListener("click", toggleRecording);
 
     document.addEventListener("keydown", (event) => {
@@ -223,7 +254,14 @@
     centerDirection();
     fetch("/api/status")
       .then((response) => response.json())
-      .then((data) => applyRecording(data.recording || {}))
+      .then((data) => {
+        const detection = data.settings && data.settings.detection;
+        if (detection && detection.min_size_cm) {
+          motionSize.value = detection.min_size_cm;
+          renderValues();
+        }
+        applyRecording(data.recording || {});
+      })
       .catch(() => {});
   </script>
 </body>

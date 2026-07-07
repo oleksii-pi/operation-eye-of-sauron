@@ -2,6 +2,4 @@ fastapi
 uvicorn
 opencv-python-headless
 numpy
-ultralytics
-mediapipe
 requests
