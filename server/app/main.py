@@ -9,6 +9,7 @@ from app.camera import CameraStream
 from app.camera_direction import CameraDirection
 from app.config import get_settings
 from app.motion_detector import MotionDetector
+from app.motor_control import MotorControl
 from app.recorder import FrameRecorder
 
 
@@ -29,6 +30,7 @@ camera = CameraStream(
     recorder=FrameRecorder(recordings_dir),
 )
 direction = CameraDirection(settings.rtsp_url, settings.onvif_port)
+motor = MotorControl(settings.motor_server_ip)
 app = FastAPI(title="operation-eye-of-sauron")
 index_file = Path(__file__).resolve().parent / "static" / "index.html"
 
@@ -40,6 +42,10 @@ class DirectionRequest(BaseModel):
 
 class MotionSizeRequest(BaseModel):
     min_size_cm: float
+
+
+class MotorRequest(BaseModel):
+    enabled: bool
 
 
 @app.on_event("startup")
@@ -87,6 +93,7 @@ def status() -> JSONResponse:
         "camera": camera.info(),
         "recording": camera.recording_info(),
         "direction": direction.info(),
+        "motor": motor.info(),
     })
 
 
@@ -108,6 +115,11 @@ def move_direction(request: DirectionRequest) -> JSONResponse:
 @app.post("/api/motion-size")
 def set_motion_size(request: MotionSizeRequest) -> JSONResponse:
     return JSONResponse(detector.set_min_size_cm(request.min_size_cm))
+
+
+@app.post("/api/motor")
+def set_motor(request: MotorRequest) -> JSONResponse:
+    return JSONResponse(motor.set_enabled(request.enabled))
 
 
 def masked_url(url: str) -> str:

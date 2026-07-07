@@ -19,6 +19,7 @@ def load_dotenv_file(path: str = ".env") -> None:
 @dataclass(frozen=True)
 class Settings:
     rtsp_url: str
+    motor_server_ip: str
     stream_width: int
     stream_height: int
     jpeg_quality: int
@@ -47,6 +48,7 @@ def get_settings() -> Settings:
     load_dotenv_file()
     return Settings(
         rtsp_url=os.getenv("RTSP_URL", "").strip(),
+        motor_server_ip=os.getenv("motor_server_ip", "").strip(),
         stream_width=max(320, int_env("STREAM_WIDTH", 1280)),
         stream_height=max(180, int_env("STREAM_HEIGHT", 720)),
         jpeg_quality=min(100, max(50, int_env("JPEG_QUALITY", 90))),
