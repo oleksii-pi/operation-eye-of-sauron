@@ -11,8 +11,17 @@ class FollowController:
         self.width = width
         self.height = height
 
-    def follow(self, lag_seconds: float, max_adjustments: int = 3) -> dict[str, object]:
+    def follow(
+        self,
+        lag_seconds: float,
+        max_adjustments: int = 3,
+        min_h: int = -100,
+        max_h: int = 100,
+        min_v: int = -100,
+        max_v: int = 100,
+    ) -> dict[str, object]:
         delay = min(4.0, max(1.2, lag_seconds))
+        bounds = self._bounds(min_h, max_h, min_v, max_v)
         result: dict[str, object] = {
             "status": "no_motion",
             "lag_seconds": round(delay, 2),
@@ -25,7 +34,7 @@ class FollowController:
                 if not target:
                     result["status"] = "motion_lost" if adjustments else "no_motion"
                     break
-                adjustment = self._adjustment(target, index + 1)
+                adjustment = self._adjustment(target, index + 1, bounds)
                 if adjustment["centered"]:
                     result["status"] = "centered"
                     break
@@ -75,14 +84,19 @@ class FollowController:
             time.sleep(0.05)
         return {"ok": False, "seconds": round(time.monotonic() - started_at, 2), "motion": state["motion"]}
 
-    def _adjustment(self, target: dict[str, float | int], step: int) -> dict[str, object]:
+    def _adjustment(
+        self,
+        target: dict[str, float | int],
+        step: int,
+        bounds: tuple[int, int, int, int],
+    ) -> dict[str, object]:
         direction = self.direction.info()
         horizontal = int(direction["horizontal"])
         vertical = int(direction["vertical"])
         x_error = (float(target["x"]) - self.width / 2) / (self.width / 2)
         y_error = (float(target["y"]) - self.height / 2) / (self.height / 2)
-        next_horizontal = clamp(horizontal + round(x_error * 30))
-        next_vertical = clamp(vertical - round(y_error * 85))
+        next_horizontal = clamp_to(horizontal + round(x_error * 30), bounds[0], bounds[1])
+        next_vertical = clamp_to(vertical - round(y_error * 85), bounds[2], bounds[3])
         centered = abs(x_error) < 0.10 and abs(y_error) < 0.10
         move_distance = abs(next_horizontal - horizontal) + abs(next_vertical - vertical)
         return {
@@ -94,3 +108,14 @@ class FollowController:
             "move_distance": move_distance,
             "centered": centered or (next_horizontal == horizontal and next_vertical == vertical),
         }
+
+    def _bounds(self, min_h: int, max_h: int, min_v: int, max_v: int) -> tuple[int, int, int, int]:
+        min_h = clamp(min_h)
+        max_h = clamp(max_h)
+        min_v = clamp(min_v)
+        max_v = clamp(max_v)
+        return min(min_h, max_h), max(min_h, max_h), min(min_v, max_v), max(min_v, max_v)
+
+
+def clamp_to(value: int, minimum: int, maximum: int) -> int:
+    return max(minimum, min(maximum, clamp(value)))

@@ -53,6 +53,10 @@ class MotorRequest(BaseModel):
 class FollowRequest(BaseModel):
     lag_ms: int = 1000
     max_adjustments: int = 3
+    min_h: int = -100
+    max_h: int = 100
+    min_v: int = -100
+    max_v: int = 100
 
 
 @app.on_event("startup")
@@ -133,7 +137,16 @@ def set_motor(request: MotorRequest) -> JSONResponse:
 def follow(request: FollowRequest) -> JSONResponse:
     lag_seconds = min(4.0, max(1.2, request.lag_ms / 1000))
     max_adjustments = min(5, max(1, request.max_adjustments))
-    return JSONResponse(follower.follow(lag_seconds, max_adjustments))
+    return JSONResponse(
+        follower.follow(
+            lag_seconds,
+            max_adjustments,
+            request.min_h,
+            request.max_h,
+            request.min_v,
+            request.max_v,
+        )
+    )
 
 
 def masked_url(url: str) -> str:
