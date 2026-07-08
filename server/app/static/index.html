@@ -101,16 +101,24 @@
       font-size: 12px;
       color: #ddd;
     }
-    .latency {
-      display: flex;
+    .latency-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 72px;
+      gap: 8px;
       align-items: center;
-      justify-content: space-between;
       min-height: 24px;
       padding-bottom: 4px;
       border-bottom: 1px solid #333;
+    }
+    .latency {
       font-size: 12px;
       color: #eee;
       font-weight: 700;
+    }
+    #latencyStart {
+      width: 100%;
+      height: 26px;
+      font-size: 12px;
     }
     .control label {
       display: grid;
@@ -243,7 +251,10 @@
       <img id="streamImage" alt="Camera stream">
       <div class="crosshair" aria-hidden="true"></div>
       <div class="controls">
-        <output id="latencyValue" class="latency">Latency: calculating</output>
+        <div class="latency-row">
+          <output id="latencyValue" class="latency">Latency: unknown</output>
+          <button id="latencyStart" type="button">Calibrate</button>
+        </div>
         <div class="control">
           <label for="horizontal"><span>Horizontal</span><output id="horizontalValue">0</output></label>
           <input id="horizontal" type="range" min="-100" max="100" value="0" step="1">
@@ -259,7 +270,7 @@
           <label for="maxV"><span>maxV</span><input id="maxV" class="limit-input" type="number" min="-100" max="100" step="1"></label>
         </div>
         <label class="check" for="motionOn">
-          <input id="motionOn" type="checkbox" checked>
+          <input id="motionOn" type="checkbox">
           <span>Motion detection</span>
         </label>
         <div class="control">
@@ -302,12 +313,14 @@
     const motorOn = document.querySelector("#motorOn");
     const motorStatus = document.querySelector("#motorStatus");
     const latencyValue = document.querySelector("#latencyValue");
+    const latencyStart = document.querySelector("#latencyStart");
     let sendTimer;
     let motionTimer;
     let isRecording = false;
     let streamLagMs = 1000;
     const streamUrl = "/stream.mjpg";
     const limitInputs = [minH, maxH, minV, maxV];
+    const limitStorageKey = "cameraLimits";
 
     function clamp(value, min = -100, max = 100) {
       return Math.max(min, Math.min(max, Number(value) || 0));
@@ -320,6 +333,25 @@
     function cleanLimit(input) {
       if (input.value.trim() === "") return;
       input.value = clamp(input.value);
+    }
+
+    function loadLimits() {
+      try {
+        const limits = JSON.parse(localStorage.getItem(limitStorageKey) || "{}");
+        limitInputs.forEach((input) => {
+          if (Number.isFinite(Number(limits[input.id]))) input.value = limits[input.id];
+        });
+      } catch {
+        localStorage.removeItem(limitStorageKey);
+      }
+    }
+
+    function saveLimits() {
+      const limits = {};
+      limitInputs.forEach((input) => {
+        if (input.value.trim() !== "") limits[input.id] = Number(input.value);
+      });
+      localStorage.setItem(limitStorageKey, JSON.stringify(limits));
     }
 
     function normalizeLimits(changedId = "") {
@@ -360,6 +392,7 @@
 
     function applyLimits(send = false, changedId = "") {
       normalizeLimits(changedId);
+      saveLimits();
       const nextHorizontal = clampHorizontal(horizontal.value);
       const nextVertical = clampVertical(vertical.value);
       const changed = nextHorizontal !== Number(horizontal.value) || nextVertical !== Number(vertical.value);
@@ -444,8 +477,8 @@
 
     function centerDirection() {
       normalizeLimits();
-      horizontal.value = clampHorizontal(0);
-      vertical.value = clampVertical(0);
+      horizontal.value = Math.round((limitValue(minH, -100) + limitValue(maxH, 100)) / 2);
+      vertical.value = Math.round((limitValue(minV, -100) + limitValue(maxV, 100)) / 2);
       renderValues();
       postDirection();
     }
@@ -528,11 +561,19 @@
     }
 
     function applyLatency(data) {
-      if (!data || data.status === "calculating" || data.status === "waiting") {
-        latencyValue.value = "Latency: calculating";
-        latencyValue.title = "3-second camera-move latency probe is running";
+      if (!data || data.status === "waiting") {
+        latencyValue.value = "Latency: unknown";
+        latencyValue.title = "Click Calibrate to measure camera latency";
+        latencyStart.disabled = false;
         return;
       }
+      if (data.status === "calculating") {
+        latencyValue.value = "Latency: calculating";
+        latencyValue.title = "3-second camera-move latency probe is running";
+        latencyStart.disabled = true;
+        return;
+      }
+      latencyStart.disabled = false;
       if (data.status === "done") {
         const seconds = Math.max(0.1, Number(data.seconds) || 0);
         streamLagMs = Math.round(seconds * 1000);
@@ -559,12 +600,14 @@
         .catch(() => {
           latencyValue.value = "Latency: offline";
           latencyValue.title = "Status request failed";
+          latencyStart.disabled = false;
         });
     }
 
     function startLatency() {
       latencyValue.value = "Latency: calculating";
       latencyValue.title = "3-second camera-move latency probe is running";
+      latencyStart.disabled = true;
       fetch("/api/latency/start", { method: "POST", cache: "no-store" })
         .then((response) => {
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -574,6 +617,7 @@
         .catch(() => {
           latencyValue.value = "Latency: offline";
           latencyValue.title = "Latency probe start request failed";
+          latencyStart.disabled = false;
         });
     }
 
@@ -624,6 +668,7 @@
 
     record.addEventListener("click", toggleRecording);
     follow.addEventListener("click", runFollow);
+    latencyStart.addEventListener("click", startLatency);
     followSteps.addEventListener("change", () => { followSteps.value = clampSteps(followSteps.value); });
     motionOn.addEventListener("change", toggleMotion);
     motorOn.addEventListener("change", toggleMotor);
@@ -651,9 +696,9 @@
       moveBy(move[0], move[1]);
     });
 
+    loadLimits();
     centerDirection();
     streamImage.src = streamUrl;
-    startLatency();
     fetch("/api/status")
       .then((response) => response.json())
       .then((data) => {

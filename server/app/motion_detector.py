@@ -29,7 +29,7 @@ class MotionDetector:
         self._boxes: list[MotionBox] = []
         self._updated_at = 0.0
         self._frame_size = (0, 0)
-        self._enabled = True
+        self._enabled = False
         self._pause_frame: np.ndarray | None = None
         self._scene_motion = 0.0
         self._settled_at = 0.0
