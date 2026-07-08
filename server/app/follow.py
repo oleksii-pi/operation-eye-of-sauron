@@ -28,6 +28,7 @@ class FollowController:
             "adjustments": [],
         }
         adjustments: list[dict[str, object]] = []
+        restore_enabled = bool(self.detector.info()["enabled"])
         try:
             for index in range(max_adjustments):
                 target = self._wait_target(delay)
@@ -44,11 +45,11 @@ class FollowController:
                 adjustments.append(adjustment)
                 result["status"] = "move_error" if adjustment["error"] else "adjusting"
                 adjustment["scene_settled"] = self._wait_scene_settled(delay, adjustment["move_distance"])
-                self.detector.set_enabled(True)
+                self.detector.set_enabled(restore_enabled)
                 if adjustment["error"]:
                     break
         finally:
-            self.detector.set_enabled(True)
+            self.detector.set_enabled(restore_enabled)
         if len(adjustments) == max_adjustments and result["status"] == "adjusting":
             result["status"] = "max_adjustments"
         result["adjustments"] = adjustments

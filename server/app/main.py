@@ -46,6 +46,10 @@ class MotionSizeRequest(BaseModel):
     min_size_cm: float
 
 
+class MotionRequest(BaseModel):
+    enabled: bool
+
+
 class MotorRequest(BaseModel):
     enabled: bool
 
@@ -126,6 +130,11 @@ def move_direction(request: DirectionRequest) -> JSONResponse:
 @app.post("/api/motion-size")
 def set_motion_size(request: MotionSizeRequest) -> JSONResponse:
     return JSONResponse(detector.set_min_size_cm(request.min_size_cm))
+
+
+@app.post("/api/motion")
+def set_motion(request: MotionRequest) -> JSONResponse:
+    return JSONResponse(detector.set_enabled(request.enabled))
 
 
 @app.post("/api/motor")

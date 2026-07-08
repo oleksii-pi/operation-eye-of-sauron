@@ -246,6 +246,10 @@
           <label for="minV"><span>minV</span><input id="minV" class="limit-input" type="number" min="-100" max="100" step="1"></label>
           <label for="maxV"><span>maxV</span><input id="maxV" class="limit-input" type="number" min="-100" max="100" step="1"></label>
         </div>
+        <label class="check" for="motionOn">
+          <input id="motionOn" type="checkbox" checked>
+          <span>Motion detection</span>
+        </label>
         <div class="control">
           <label for="motionSize"><span>Motion size, cm</span><output id="motionSizeValue">5</output></label>
           <input id="motionSize" type="range" min="1" max="50" value="5" step="1">
@@ -272,6 +276,7 @@
     const maxH = document.querySelector("#maxH");
     const minV = document.querySelector("#minV");
     const maxV = document.querySelector("#maxV");
+    const motionOn = document.querySelector("#motionOn");
     const motionSize = document.querySelector("#motionSize");
     const horizontalValue = document.querySelector("#horizontalValue");
     const verticalValue = document.querySelector("#verticalValue");
@@ -388,6 +393,32 @@
     function sendMotionSize() {
       clearTimeout(motionTimer);
       motionTimer = setTimeout(postMotionSize, 120);
+    }
+
+    function applyMotion(data) {
+      motionOn.checked = Boolean(data.enabled);
+    }
+
+    function toggleMotion() {
+      const enabled = motionOn.checked;
+      motionOn.disabled = true;
+      fetch("/api/motion", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled }),
+      })
+        .then((response) => {
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          return response.json();
+        })
+        .then(applyMotion)
+        .catch(() => { motionOn.checked = !enabled; })
+        .finally(() => { motionOn.disabled = false; });
+    }
+
+    function toggleMotionFromKey() {
+      motionOn.checked = !motionOn.checked;
+      toggleMotion();
     }
 
     function setDirection(nextHorizontal, nextVertical) {
@@ -530,6 +561,7 @@
     record.addEventListener("click", toggleRecording);
     follow.addEventListener("click", runFollow);
     followSteps.addEventListener("change", () => { followSteps.value = clampSteps(followSteps.value); });
+    motionOn.addEventListener("change", toggleMotion);
     motorOn.addEventListener("change", toggleMotor);
 
     streamImage.addEventListener("load", () => {
@@ -542,6 +574,11 @@
 
     document.addEventListener("keydown", (event) => {
       if (event.target instanceof HTMLInputElement) return;
+      if (event.key.toLowerCase() === "m") {
+        event.preventDefault();
+        toggleMotionFromKey();
+        return;
+      }
       const moves = {
         ArrowLeft: [-1, 0],
         ArrowRight: [1, 0],
@@ -562,6 +599,7 @@
         const detection = data.settings && data.settings.detection;
         if (detection && detection.min_size_cm) {
           motionSize.value = detection.min_size_cm;
+          applyMotion(detection);
           renderValues();
         }
         applyRecording(data.recording || {});
