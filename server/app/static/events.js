@@ -76,7 +76,9 @@ function bindEvents() {
       renderValues();
       sendDirection();
     });
+    slider.addEventListener("click", handleSliderClick);
   });
+  ui.vertical.addEventListener("keydown", handleVerticalSliderKeydown);
   limitInputs.forEach((input) => bindLimitInput(input));
   ui.motionSize.addEventListener("input", () => {
     renderValues();
@@ -103,6 +105,28 @@ function bindLimitInput(input) {
     input.select();
   });
   input.addEventListener("change", () => applyLimits(true, input.id));
+}
+
+function handleSliderClick(event) {
+  if (!event.metaKey) return;
+  event.preventDefault();
+  const isHorizontal = event.currentTarget === ui.horizontal;
+  setDirection(isHorizontal ? 0 : Number(ui.horizontal.value), isHorizontal ? Number(ui.vertical.value) : 0);
+}
+
+function handleVerticalSliderKeydown(event) {
+  const moves = {
+    ArrowUp: 1,
+    ArrowDown: -1,
+  };
+  if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+    event.preventDefault();
+    return;
+  }
+  const delta = moves[event.key];
+  if (!delta) return;
+  event.preventDefault();
+  setDirection(Number(ui.horizontal.value), Number(ui.vertical.value) + delta);
 }
 
 function handleKeydown(event) {

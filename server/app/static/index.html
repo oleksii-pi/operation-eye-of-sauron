@@ -24,20 +24,6 @@
           <output id="latencyValue" class="latency">Latency: unknown</output>
           <button id="latencyStart" type="button">Calibrate</button>
         </div>
-        <div class="control">
-          <label for="horizontal"><span>Horizontal</span><output id="horizontalValue">0</output></label>
-          <input id="horizontal" type="range" min="-100" max="100" value="0" step="1">
-        </div>
-        <div class="control">
-          <label for="vertical"><span>Vertical</span><output id="verticalValue">0</output></label>
-          <input id="vertical" type="range" min="-100" max="100" value="0" step="1">
-        </div>
-        <div class="limits">
-          <label for="minH"><span>minH</span><input id="minH" class="limit-input" type="number" min="-100" max="100" step="1"></label>
-          <label for="maxH"><span>maxH</span><input id="maxH" class="limit-input" type="number" min="-100" max="100" step="1"></label>
-          <label for="minV"><span>minV</span><input id="minV" class="limit-input" type="number" min="-100" max="100" step="1"></label>
-          <label for="maxV"><span>maxV</span><input id="maxV" class="limit-input" type="number" min="-100" max="100" step="1"></label>
-        </div>
         <label class="check" for="motionOn">
           <input id="motionOn" type="checkbox">
           <span>Motion detection</span>
@@ -58,6 +44,20 @@
           <span>Motor on</span>
         </label>
         <div id="motorStatus" class="motor-status"></div>
+      </div>
+      <div class="direction-controls">
+        <div class="vertical-control">
+          <label for="maxV"><span>max</span><input id="maxV" class="limit-input" type="number" min="-100" max="100" step="1"></label>
+          <input id="vertical" type="range" min="-100" max="100" value="0" step="1" orient="vertical">
+          <label for="minV"><span>min</span><input id="minV" class="limit-input" type="number" min="-100" max="100" step="1"></label>
+          <output id="verticalValue" class="axis-value">0</output>
+        </div>
+        <div class="horizontal-control">
+          <label for="minH"><span>min</span><input id="minH" class="limit-input" type="number" min="-100" max="100" step="1"></label>
+          <input id="horizontal" type="range" min="-100" max="100" value="0" step="1">
+          <label for="maxH"><span>max</span><input id="maxH" class="limit-input" type="number" min="-100" max="100" step="1"></label>
+          <output id="horizontalValue" class="axis-value">0</output>
+        </div>
       </div>
     </div>
   </main>
