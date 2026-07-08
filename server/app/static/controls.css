@@ -1,0 +1,149 @@
+.controls {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  width: 220px;
+  border: 1px solid #444;
+  border-radius: 8px;
+  background: rgb(0 0 0 / 70%);
+}
+.controls > * { min-width: 0; }
+.control {
+  display: grid;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+  color: #ddd;
+}
+.latency-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 72px;
+  gap: 8px;
+  align-items: center;
+  min-height: 24px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #333;
+}
+.latency {
+  font-size: 12px;
+  color: #eee;
+  font-weight: 700;
+}
+#latencyStart {
+  width: 100%;
+  height: 26px;
+  font-size: 12px;
+}
+.control label {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 34px;
+  gap: 8px;
+  align-items: center;
+}
+.limits {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+.limits label {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  font-size: 10px;
+  color: #bbb;
+}
+.limit-input,
+.steps-input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  border: 1px solid #555;
+  background: #111;
+  color: #eee;
+  text-align: center;
+}
+.limit-input {
+  height: 26px;
+  padding: 0 3px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+.steps-input {
+  height: 34px;
+  padding: 0 4px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 700;
+}
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  margin: 0;
+  appearance: none;
+}
+input[type="number"] { appearance: textfield; }
+input[type="range"] {
+  width: 100%;
+  min-width: 0;
+  accent-color: #5fd18d;
+}
+output {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+button {
+  height: 34px;
+  border: 1px solid #666;
+  border-radius: 6px;
+  background: #1b1b1b;
+  color: #eee;
+  cursor: pointer;
+}
+#record {
+  width: 100px;
+}
+button:disabled,
+input:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+button.recording {
+  border-color: #f06d6d;
+  background: #521b1b;
+}
+.record-status,
+.motor-status {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  color: #bbb;
+}
+.motor-status { min-height: 14px; }
+.check {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: #eee;
+}
+.check input {
+  width: 16px;
+  height: 16px;
+  accent-color: #5fd18d;
+}
+.follow-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 40px;
+  gap: 8px;
+  align-items: stretch;
+  min-width: 0;
+  width: 100%;
+}
+#follow {
+  width: 100%;
+  min-width: 0;
+}

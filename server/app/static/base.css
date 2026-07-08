@@ -1,0 +1,72 @@
+:root { color-scheme: dark; }
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  height: 100vh;
+  overflow: hidden;
+  background: #111;
+  color: #eee;
+  font-family: Arial, sans-serif;
+}
+main {
+  width: 100vw;
+  height: 100vh;
+}
+h1 {
+  animation: blink 2s steps(1, end) infinite;
+  color: red;
+  position: absolute;
+  z-index: 2;
+  left: 24px;
+  top: 60px;
+  margin: 0;
+  font-size: 18px;
+  text-shadow: 0 1px 3px #000;
+}
+@keyframes blink {
+  0%, 49.9% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+.stream {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+img {
+  width: 100%;
+  height: 100%;
+  background: #000;
+  display: block;
+  object-fit: cover;
+}
+.crosshair {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 28px;
+  height: 28px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 1;
+}
+.crosshair::before,
+.crosshair::after {
+  content: "";
+  position: absolute;
+  background: #ff2020;
+  box-shadow: 0 0 3px #000;
+}
+.crosshair::before {
+  left: 0;
+  top: 13px;
+  width: 28px;
+  height: 2px;
+}
+.crosshair::after {
+  left: 13px;
+  top: 0;
+  width: 2px;
+  height: 28px;
+}

@@ -3,6 +3,7 @@ from urllib.parse import urlsplit, urlunsplit
 
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from app.camera import CameraStream
@@ -36,7 +37,9 @@ latency = LatencyProbe(camera, direction)
 motor = MotorControl(settings.motor_server_ip)
 follower = FollowController(direction, detector, settings.stream_width, settings.stream_height)
 app = FastAPI(title="operation-eye-of-sauron")
-index_file = Path(__file__).resolve().parent / "static" / "index.html"
+static_dir = Path(__file__).resolve().parent / "static"
+index_file = static_dir / "index.html"
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 
 class DirectionRequest(BaseModel):
