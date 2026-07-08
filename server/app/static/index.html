@@ -101,6 +101,17 @@
       font-size: 12px;
       color: #ddd;
     }
+    .latency {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 24px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid #333;
+      font-size: 12px;
+      color: #eee;
+      font-weight: 700;
+    }
     .control label {
       display: grid;
       grid-template-columns: minmax(0, 1fr) 34px;
@@ -232,6 +243,7 @@
       <img id="streamImage" alt="Camera stream">
       <div class="crosshair" aria-hidden="true"></div>
       <div class="controls">
+        <output id="latencyValue" class="latency">Latency: calculating</output>
         <div class="control">
           <label for="horizontal"><span>Horizontal</span><output id="horizontalValue">0</output></label>
           <input id="horizontal" type="range" min="-100" max="100" value="0" step="1">
@@ -289,14 +301,12 @@
     const recordStatus = document.querySelector("#recordStatus");
     const motorOn = document.querySelector("#motorOn");
     const motorStatus = document.querySelector("#motorStatus");
+    const latencyValue = document.querySelector("#latencyValue");
     let sendTimer;
     let motionTimer;
     let isRecording = false;
     let streamLagMs = 1000;
-    let lastMoveStartedAt = 0;
     const streamUrl = "/stream.mjpg";
-    const followIdleExtraMs = 500;
-    const pageStartedAt = performance.now();
     const limitInputs = [minH, maxH, minV, maxV];
 
     function clamp(value, min = -100, max = 100) {
@@ -366,7 +376,6 @@
     }
 
     function postDirection() {
-      lastMoveStartedAt = performance.now();
       return fetch("/api/direction", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -513,6 +522,61 @@
       motorStatus.title = motorStatus.textContent;
     }
 
+    function renderFollowIdle() {
+      followStatus.textContent = `Follow idle · ${(streamLagMs / 1000).toFixed(1)}s`;
+      followStatus.title = followStatus.textContent;
+    }
+
+    function applyLatency(data) {
+      if (!data || data.status === "calculating" || data.status === "waiting") {
+        latencyValue.value = "Latency: calculating";
+        latencyValue.title = "3-second camera-move latency probe is running";
+        return;
+      }
+      if (data.status === "done") {
+        const seconds = Math.max(0.1, Number(data.seconds) || 0);
+        streamLagMs = Math.round(seconds * 1000);
+        latencyValue.value = `Latency: ${seconds.toFixed(1)}s`;
+        latencyValue.title = "Measured from ONVIF move to visible RTSP frame change";
+        if (followStatus.textContent.startsWith("Follow idle")) renderFollowIdle();
+        return;
+      }
+      latencyValue.value = "Latency: unavailable";
+      latencyValue.title = data.error || "3-second latency probe failed";
+    }
+
+    function updateLatency() {
+      fetch("/api/status", { cache: "no-store" })
+        .then((response) => {
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          return response.json();
+        })
+        .then((data) => {
+          applyLatency(data.latency);
+          applyRecording(data.recording || {});
+          applyMotor(data.motor || {});
+        })
+        .catch(() => {
+          latencyValue.value = "Latency: offline";
+          latencyValue.title = "Status request failed";
+        });
+    }
+
+    function startLatency() {
+      latencyValue.value = "Latency: calculating";
+      latencyValue.title = "3-second camera-move latency probe is running";
+      fetch("/api/latency/start", { method: "POST", cache: "no-store" })
+        .then((response) => {
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          return response.json();
+        })
+        .then(applyLatency)
+        .catch(() => {
+          latencyValue.value = "Latency: offline";
+          latencyValue.title = "Latency probe start request failed";
+        });
+    }
+
     function toggleMotor() {
       const enabled = motorOn.checked;
       motorOn.disabled = true;
@@ -565,11 +629,7 @@
     motorOn.addEventListener("change", toggleMotor);
 
     streamImage.addEventListener("load", () => {
-      const startedAt = lastMoveStartedAt || pageStartedAt;
-      const measuredLagMs = Math.round(performance.now() - startedAt);
-      streamLagMs = Math.max(1200, Math.min(4000, measuredLagMs + followIdleExtraMs));
-      followStatus.textContent = `Follow idle · ${streamLagMs}ms`;
-      followStatus.title = followStatus.textContent;
+      renderFollowIdle();
     }, { once: true });
 
     document.addEventListener("keydown", (event) => {
@@ -593,6 +653,7 @@
 
     centerDirection();
     streamImage.src = streamUrl;
+    startLatency();
     fetch("/api/status")
       .then((response) => response.json())
       .then((data) => {
@@ -603,9 +664,12 @@
           renderValues();
         }
         applyRecording(data.recording || {});
+        applyLatency(data.latency);
         applyMotor(data.motor || {});
       })
       .catch(() => {});
+    updateLatency();
+    setInterval(updateLatency, 2000);
   </script>
 </body>
 </html>

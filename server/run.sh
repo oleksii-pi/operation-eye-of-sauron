@@ -12,4 +12,4 @@ fi
 "$PYTHON" -m pip install --upgrade pip
 "$PYTHON" -m pip install --upgrade -r requirements.txt
 
-exec "$PYTHON" -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --timeout-graceful-shutdown 1
+exec "$PYTHON" -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir app --timeout-graceful-shutdown 1

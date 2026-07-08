@@ -9,6 +9,7 @@ from app.camera import CameraStream
 from app.camera_direction import CameraDirection
 from app.config import get_settings
 from app.follow import FollowController
+from app.latency_probe import LatencyProbe
 from app.motion_detector import MotionDetector
 from app.motor_control import MotorControl
 from app.recorder import FrameRecorder
@@ -31,6 +32,7 @@ camera = CameraStream(
     recorder=FrameRecorder(recordings_dir),
 )
 direction = CameraDirection(settings.rtsp_url, settings.onvif_port)
+latency = LatencyProbe(camera, direction)
 motor = MotorControl(settings.motor_server_ip)
 follower = FollowController(direction, detector, settings.stream_width, settings.stream_height)
 app = FastAPI(title="operation-eye-of-sauron")
@@ -108,8 +110,14 @@ def status() -> JSONResponse:
         "camera": camera.info(),
         "recording": camera.recording_info(),
         "direction": direction.info(),
+        "latency": latency.info(),
         "motor": motor.info(),
     })
+
+
+@app.post("/api/latency/start")
+def start_latency() -> JSONResponse:
+    return JSONResponse(latency.start())
 
 
 @app.post("/api/recording/start")
