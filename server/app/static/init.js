@@ -1,4 +1,5 @@
 loadLimits();
+loadMotorAddress();
 centerDirection();
 bindEvents();
 ui.streamImage.src = streamUrl;

@@ -16,6 +16,7 @@ const ui = {
   followStatus: document.querySelector("#followStatus"),
   record: document.querySelector("#record"),
   recordStatus: document.querySelector("#recordStatus"),
+  motorAddress: document.querySelector("#motorAddress"),
   motorOn: document.querySelector("#motorOn"),
   motorStatus: document.querySelector("#motorStatus"),
   latencyValue: document.querySelector("#latencyValue"),
@@ -31,6 +32,7 @@ const state = {
 
 const streamUrl = "/stream.mjpg";
 const limitStorageKey = "cameraLimits";
+const motorAddressStorageKey = "motorUdpAddress";
 const limitInputs = [ui.minH, ui.maxH, ui.minV, ui.maxV];
 
 function clamp(value, min = -100, max = 100) {
