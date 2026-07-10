@@ -6,6 +6,8 @@ const ui = {
   minV: document.querySelector("#minV"),
   maxV: document.querySelector("#maxV"),
   motionOn: document.querySelector("#motionOn"),
+  motionSoundRow: document.querySelector("#motionSoundRow"),
+  motionSound: document.querySelector("#motionSound"),
   motionSize: document.querySelector("#motionSize"),
   horizontalValue: document.querySelector("#horizontalValue"),
   verticalValue: document.querySelector("#verticalValue"),
@@ -28,11 +30,16 @@ const state = {
   motionTimer: 0,
   isRecording: false,
   streamLagMs: 1000,
+  motionSoundEnabled: false,
+  motionEventActive: false,
+  lastMotionSoundAt: 0,
+  motionSound: new Audio("/static/mouse-click.mp3"),
 };
 
 const streamUrl = "/stream.mjpg";
 const limitStorageKey = "cameraLimits";
 const motorAddressStorageKey = "motorUdpAddress";
+const motionSoundStorageKey = "motionSoundEnabled";
 const limitInputs = [ui.minH, ui.maxH, ui.minV, ui.maxV];
 
 function clamp(value, min = -100, max = 100) {

@@ -115,6 +115,7 @@ function bindEvents() {
     ui.followSteps.value = clampSteps(ui.followSteps.value);
   });
   ui.motionOn.addEventListener("change", toggleMotion);
+  ui.motionSound.addEventListener("change", toggleMotionSound);
   ui.motorAddress.addEventListener("change", saveMotorAddress);
   ui.motorOn.addEventListener("change", toggleMotor);
   ui.streamImage.addEventListener("load", renderFollowIdle, { once: true });

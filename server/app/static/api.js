@@ -36,6 +36,7 @@ function updateLatency() {
       return response.json();
     })
     .then((data) => {
+      handleMotionDetection(data.settings && data.settings.detection);
       applyLatency(data.latency);
       applyRecording(data.recording || {});
       applyMotor(data.motor || {});
@@ -52,9 +53,9 @@ function loadStatus() {
     .then((response) => response.json())
     .then((data) => {
       const detection = data.settings && data.settings.detection;
-      if (detection && detection.min_size_cm) {
-        ui.motionSize.value = detection.min_size_cm;
-        applyMotion(detection);
+      if (detection) {
+        ui.motionSize.value = detection.min_size_cm || ui.motionSize.value;
+        handleMotionDetection(detection);
         renderValues();
       }
       applyRecording(data.recording || {});

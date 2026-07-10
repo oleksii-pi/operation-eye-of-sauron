@@ -1,5 +1,46 @@
 function applyMotion(data) {
   ui.motionOn.checked = Boolean(data.enabled);
+  syncMotionSound();
+}
+
+function loadMotionSound() {
+  state.motionSoundEnabled = localStorage.getItem(motionSoundStorageKey) === "true";
+  state.motionSound.preload = "auto";
+  syncMotionSound();
+}
+
+function syncMotionSound() {
+  ui.motionSoundRow.hidden = !ui.motionOn.checked;
+  ui.motionSound.disabled = !ui.motionOn.checked;
+  ui.motionSound.checked = state.motionSoundEnabled;
+  if (!ui.motionOn.checked) state.motionEventActive = false;
+}
+
+function toggleMotionSound() {
+  state.motionSoundEnabled = ui.motionSound.checked;
+  localStorage.setItem(motionSoundStorageKey, state.motionSoundEnabled ? "true" : "false");
+  syncMotionSound();
+}
+
+function handleMotionDetection(data) {
+  if (!data) return;
+  applyMotion(data);
+  if (!data.enabled || Number(data.boxes) <= 0) {
+    state.motionEventActive = false;
+    return;
+  }
+  if (state.motionEventActive) return;
+  state.motionEventActive = true;
+  playMotionSound();
+}
+
+function playMotionSound() {
+  const now = Date.now();
+  if (!state.motionSoundEnabled || now - state.lastMotionSoundAt < 5000) return;
+  state.lastMotionSoundAt = now;
+  state.motionSound.pause();
+  state.motionSound.currentTime = 0;
+  state.motionSound.play().catch(() => {});
 }
 
 function toggleMotion() {
@@ -11,7 +52,10 @@ function toggleMotion() {
       return response.json();
     })
     .then(applyMotion)
-    .catch(() => { ui.motionOn.checked = !enabled; })
+    .catch(() => {
+      ui.motionOn.checked = !enabled;
+      syncMotionSound();
+    })
     .finally(() => { ui.motionOn.disabled = false; });
 }
 
