@@ -30,7 +30,7 @@ camera = CameraStream(
     jpeg_quality=settings.jpeg_quality,
     fps=settings.stream_fps,
     detector=detector,
-    recorder=FrameRecorder(recordings_dir, fps=10.0),
+    recorder=FrameRecorder(recordings_dir, fps=20.0),
 )
 direction = CameraDirection(settings.rtsp_url, settings.onvif_port)
 latency = LatencyProbe(camera, direction)
