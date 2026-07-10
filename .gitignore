@@ -8,3 +8,4 @@ poc/__pycache__/
 poc/.venv/
 poc/**/*.pyc
 poc/recordings/
+server/recordings/
