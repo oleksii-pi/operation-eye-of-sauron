@@ -34,7 +34,7 @@ camera = CameraStream(
 )
 direction = CameraDirection(settings.rtsp_url, settings.onvif_port)
 latency = LatencyProbe(camera, direction)
-motor = MotorControl(settings.motor_server_ip)
+motor = MotorControl(settings.motor_on_seconds)
 follower = FollowController(direction, detector, settings.stream_width, settings.stream_height)
 app = FastAPI(title="operation-eye-of-sauron")
 static_dir = Path(__file__).resolve().parent / "static"
@@ -57,6 +57,7 @@ class MotionRequest(BaseModel):
 
 class MotorRequest(BaseModel):
     enabled: bool
+    address: str = ""
 
 
 class FollowRequest(BaseModel):
@@ -150,7 +151,7 @@ def set_motion(request: MotionRequest) -> JSONResponse:
 
 @app.post("/api/motor")
 def set_motor(request: MotorRequest) -> JSONResponse:
-    return JSONResponse(motor.set_enabled(request.enabled))
+    return JSONResponse(motor.set_enabled(request.enabled, request.address))
 
 
 @app.post("/api/follow")

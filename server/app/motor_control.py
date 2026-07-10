@@ -1,31 +1,93 @@
-import requests
+import socket
+import time
 
 
 class MotorControl:
-    def __init__(self, server_ip: str):
-        self.server_ip = server_ip.removeprefix("http://").removeprefix("https://").strip("/")
+    def __init__(self, on_seconds: int):
+        self.server_ip = ""
+        self.udp_port = 0
+        self.on_seconds = on_seconds
         self._enabled = False
+        self._enabled_until = 0.0
         self._error = ""
 
     def info(self) -> dict[str, bool | str]:
+        self._expire()
         return {
             "configured": bool(self.server_ip),
             "enabled": self._enabled,
             "error": self._error,
+            "protocol": "udp",
+            "address": self.address,
         }
 
-    def set_enabled(self, enabled: bool) -> dict[str, bool | str]:
+    @property
+    def address(self) -> str:
+        if not self.server_ip or not self.udp_port:
+            return ""
+        return f"{self.server_ip}:{self.udp_port}"
+
+    def set_enabled(self, enabled: bool, address: str) -> dict[str, bool | str]:
+        if not self._set_address(address):
+            return self.info()
         if not self.server_ip:
-            self._error = "motor_server_ip is not configured"
+            self._error = "Motor UDP address is not configured"
             return self.info()
 
-        path = "on" if enabled else "off"
+        command = f"on:{self.on_seconds}" if enabled else "off"
         try:
-            response = requests.get(f"http://{self.server_ip}/{path}", timeout=2)
-            response.raise_for_status()
+            self._send(command)
             self._enabled = enabled
+            self._enabled_until = time.monotonic() + self.on_seconds if enabled else 0.0
             self._error = ""
-        except requests.RequestException as exc:
+        except OSError as exc:
             self._error = str(exc)
 
         return self.info()
+
+    def _set_address(self, address: str) -> bool:
+        try:
+            self.server_ip, self.udp_port = self._parse_address(address)
+            self._error = ""
+            return True
+        except ValueError as exc:
+            self.server_ip = ""
+            self.udp_port = 0
+            self._enabled = False
+            self._enabled_until = 0.0
+            self._error = str(exc)
+            return False
+
+    def _send(self, command: str) -> None:
+        payload = command.encode("ascii")
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            sock.settimeout(0.1)
+            for _ in range(3):
+                sock.sendto(payload, (self.server_ip, self.udp_port))
+
+    def _expire(self) -> None:
+        if self._enabled and time.monotonic() >= self._enabled_until:
+            self._enabled = False
+            self._enabled_until = 0.0
+
+    @staticmethod
+    def _parse_address(raw_address: str) -> tuple[str, int]:
+        address = raw_address.strip()
+        address = address.removeprefix("udp://").removeprefix("http://").removeprefix("https://").strip("/")
+        if not address:
+            raise ValueError("Motor UDP address is required")
+        if ":" not in address:
+            raise ValueError("Motor UDP must be host:port")
+
+        host, port = address.rsplit(":", 1)
+        host = host.strip()
+        if not host:
+            raise ValueError("Motor UDP host is required")
+        try:
+            parsed_port = int(port)
+        except ValueError:
+            raise ValueError("Motor UDP port must be a number")
+
+        if parsed_port < 1 or parsed_port > 65535:
+            raise ValueError("Motor UDP port must be 1-65535")
+        return host, parsed_port

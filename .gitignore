@@ -1,4 +1,5 @@
 .env
+hardware/firmware/wifi_credentials.h
 __pycache__/
 .venv/
 *.pyc

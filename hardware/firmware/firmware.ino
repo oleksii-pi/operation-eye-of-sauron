@@ -1,158 +1,154 @@
 #include <WiFi.h>
-#include <WebServer.h>
-#include <Preferences.h>
+#include <WiFiUdp.h>
+#include "wifi_credentials.h"
 
-const char *ssid = "XXX";
-const char *password = "XXX";
+const char *ssid = WIFI_SSID;
+const char *password = WIFI_PASSWORD;
 
-WebServer server(80);
-Preferences preferences;
+const int controlPin = 16;
+const bool activeLow = true;
+const unsigned int udpPort = 4210;
+const unsigned long defaultOnSeconds = 5;
+const unsigned long maxOnSeconds = 60;
 
-int controlPin = 16;   // Default GPIO
-bool activeLow = true; // true for many relay modules
+WiFiUDP udp;
+bool outputOn = false;
+unsigned long offAtMs = 0;
+unsigned long lastWifiRetryMs = 0;
 
-bool isAllowedOutputPin(int pin)
+const char *wifiStatusName(wl_status_t status)
 {
-  // GPIO6-GPIO11 are connected to flash on most ESP32 boards
-  if (pin >= 6 && pin <= 11)
-    return false;
-
-  // GPIO34-GPIO39 are input-only
-  if (pin >= 34 && pin <= 39)
-    return false;
-
-  // Avoid negative or too high values
-  if (pin < 0 || pin > 39)
-    return false;
-
-  // These are boot strapping pins. Better avoid for relay control.
-  if (pin == 0 || pin == 2 || pin == 5 || pin == 12 || pin == 15)
-    return false;
-
-  return true;
+  switch (status)
+  {
+  case WL_IDLE_STATUS: return "idle";
+  case WL_NO_SSID_AVAIL: return "ssid not found";
+  case WL_SCAN_COMPLETED: return "scan complete";
+  case WL_CONNECTED: return "connected";
+  case WL_CONNECT_FAILED: return "connect failed";
+  case WL_CONNECTION_LOST: return "connection lost";
+  case WL_DISCONNECTED: return "disconnected";
+  default: return "unknown";
+  }
 }
 
 void writeOutput(bool on)
 {
-  if (activeLow)
+  digitalWrite(controlPin, activeLow ? !on : on);
+  outputOn = on;
+  if (!on)
   {
-    digitalWrite(controlPin, on ? LOW : HIGH);
-  }
-  else
-  {
-    digitalWrite(controlPin, on ? HIGH : LOW);
+    offAtMs = 0;
   }
 }
 
-void setupOutputPin()
+void startOutput(unsigned long seconds)
 {
-  pinMode(controlPin, OUTPUT);
-  writeOutput(false);
-}
-
-void loadConfig()
-{
-  preferences.begin("gpio-config", false);
-
-  controlPin = preferences.getInt("pin", 16);
-  activeLow = preferences.getBool("activeLow", true);
-
-  if (!isAllowedOutputPin(controlPin))
-  {
-    controlPin = 16;
-  }
-}
-
-void saveConfig()
-{
-  preferences.putInt("pin", controlPin);
-  preferences.putBool("activeLow", activeLow);
-}
-
-void handleRoot()
-{
-  String html;
-
-  html += "<h1>ESP32 GPIO Control</h1>";
-  html += "<p>Current GPIO: <b>" + String(controlPin) + "</b></p>";
-  html += "<p>Active low: <b>" + String(activeLow ? "yes" : "no") + "</b></p>";
-
-  html += "<p><a href='/on'>ON</a></p>";
-  html += "<p><a href='/off'>OFF</a></p>";
-
-  html += "<hr>";
-  html += "<h2>Configure</h2>";
-  html += "<p>For GPIO16 active-low relay:</p>";
-  html += "<p><a href='/config?pin=16&activeLow=1'>Set GPIO16 active-low</a></p>";
-
-  html += "<p>For GPIO16 normal output:</p>";
-  html += "<p><a href='/config?pin=16&activeLow=0'>Set GPIO16 normal</a></p>";
-
-  html += "<p>Example safer relay pins:</p>";
-  html += "<p><a href='/config?pin=25&activeLow=1'>GPIO25 active-low</a></p>";
-  html += "<p><a href='/config?pin=26&activeLow=1'>GPIO26 active-low</a></p>";
-  html += "<p><a href='/config?pin=27&activeLow=1'>GPIO27 active-low</a></p>";
-
-  html += "<hr>";
-  html += "<p>Manual format:</p>";
-  html += "<code>/config?pin=16&activeLow=1</code>";
-
-  server.send(200, "text/html", html);
-}
-
-void handleOn()
-{
+  seconds = min(max(seconds, 1UL), maxOnSeconds);
   writeOutput(true);
-  server.send(200, "text/plain", "ON on GPIO" + String(controlPin));
+  offAtMs = millis() + seconds * 1000UL;
 }
 
-void handleOff()
+void sendReply(const String &message)
 {
-  writeOutput(false);
-  server.send(200, "text/plain", "OFF on GPIO" + String(controlPin));
+  udp.beginPacket(udp.remoteIP(), udp.remotePort());
+  udp.print(message);
+  udp.endPacket();
 }
 
-void handleStatus()
+String readCommand()
 {
-  String json = "{";
-  json += "\"pin\":" + String(controlPin) + ",";
-  json += "\"activeLow\":" + String(activeLow ? "true" : "false");
-  json += "}";
-
-  server.send(200, "application/json", json);
-}
-
-void handleConfig()
-{
-  if (!server.hasArg("pin"))
+  int packetSize = udp.parsePacket();
+  if (!packetSize)
   {
-    server.send(400, "text/plain", "Missing pin. Example: /config?pin=16&activeLow=1");
+    return "";
+  }
+
+  char buffer[32];
+  int length = udp.read(buffer, sizeof(buffer) - 1);
+  if (length < 0)
+  {
+    return "";
+  }
+
+  buffer[length] = '\0';
+  String command(buffer);
+  command.trim();
+  command.toLowerCase();
+  return command;
+}
+
+bool parseOnSeconds(const String &command, unsigned long &seconds)
+{
+  if (command == "on")
+  {
+    seconds = defaultOnSeconds;
+    return true;
+  }
+
+  if (!command.startsWith("on:"))
+  {
+    return false;
+  }
+
+  long parsed = command.substring(3).toInt();
+  if (parsed <= 0)
+  {
+    return false;
+  }
+
+  seconds = min((unsigned long)parsed, maxOnSeconds);
+  return true;
+}
+
+void handleCommand(const String &command)
+{
+  if (!command.length())
+  {
     return;
   }
 
-  int newPin = server.arg("pin").toInt();
-
-  if (!isAllowedOutputPin(newPin))
+  if (command == "off")
   {
-    server.send(400, "text/plain", "Invalid or unsafe output GPIO");
+    writeOutput(false);
+    sendReply("ok off");
     return;
   }
 
-  writeOutput(false);
-
-  controlPin = newPin;
-
-  if (server.hasArg("activeLow"))
+  unsigned long seconds = defaultOnSeconds;
+  if (parseOnSeconds(command, seconds))
   {
-    activeLow = server.arg("activeLow").toInt() == 1;
+    startOutput(seconds);
+    sendReply("ok on:" + String(seconds));
+    return;
   }
 
-  setupOutputPin();
-  saveConfig();
+  sendReply("error expected on:seconds or off");
+}
 
-  server.send(200, "text/plain",
-              "Saved: GPIO" + String(controlPin) +
-                  ", activeLow=" + String(activeLow ? "1" : "0"));
+void maintainTimer()
+{
+  if (outputOn && (long)(millis() - offAtMs) >= 0)
+  {
+    writeOutput(false);
+  }
+}
+
+void maintainWifi()
+{
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    return;
+  }
+
+  unsigned long now = millis();
+  if (now - lastWifiRetryMs < 5000)
+  {
+    return;
+  }
+
+  lastWifiRetryMs = now;
+  WiFi.disconnect();
+  WiFi.begin(ssid, password);
 }
 
 void setup()
@@ -160,36 +156,40 @@ void setup()
   Serial.begin(115200);
   delay(500);
 
-  loadConfig();
-  setupOutputPin();
+  pinMode(controlPin, OUTPUT);
+  writeOutput(false);
 
   WiFi.begin(ssid, password);
 
   Serial.println();
   Serial.print("Connecting to WiFi");
-
+  unsigned long lastStatusMs = 0;
   while (WiFi.status() != WL_CONNECTED)
   {
-    delay(500);
+    delay(250);
     Serial.print(".");
+    unsigned long now = millis();
+    if (now - lastStatusMs >= 5000)
+    {
+      lastStatusMs = now;
+      Serial.print(" ");
+      Serial.print(wifiStatusName(WiFi.status()));
+    }
   }
 
   Serial.println();
-  Serial.println("WiFi connected");
-  Serial.print("Open this address: http://");
-  Serial.println(WiFi.localIP());
+  Serial.print("UDP motor control on ");
+  Serial.print(WiFi.localIP());
+  Serial.print(":");
+  Serial.println(udpPort);
 
-  server.on("/", handleRoot);
-  server.on("/on", handleOn);
-  server.on("/off", handleOff);
-  server.on("/status", handleStatus);
-  server.on("/config", handleConfig);
-
-  server.begin();
-  Serial.println("Web server started");
+  udp.begin(udpPort);
 }
 
 void loop()
 {
-  server.handleClient();
+  maintainWifi();
+  handleCommand(readCommand());
+  maintainTimer();
+  delay(1);
 }

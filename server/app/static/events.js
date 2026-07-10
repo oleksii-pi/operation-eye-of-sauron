@@ -1,7 +1,19 @@
 function applyMotor(data) {
   ui.motorOn.checked = Boolean(data.enabled);
+  if (data.address && !ui.motorAddress.value.trim()) {
+    ui.motorAddress.value = data.address;
+    saveMotorAddress();
+  }
   ui.motorStatus.textContent = data.error || "";
   ui.motorStatus.title = ui.motorStatus.textContent;
+}
+
+function loadMotorAddress() {
+  ui.motorAddress.value = localStorage.getItem(motorAddressStorageKey) || "";
+}
+
+function saveMotorAddress() {
+  localStorage.setItem(motorAddressStorageKey, ui.motorAddress.value.trim());
 }
 
 function renderFollowIdle() {
@@ -54,8 +66,17 @@ function startLatency() {
 
 function toggleMotor() {
   const enabled = ui.motorOn.checked;
+  const address = ui.motorAddress.value.trim();
+  saveMotorAddress();
+  if (enabled && !address) {
+    ui.motorOn.checked = false;
+    ui.motorStatus.textContent = "Motor UDP address is required";
+    ui.motorStatus.title = ui.motorStatus.textContent;
+    return;
+  }
   ui.motorOn.disabled = true;
-  postJson("/api/motor", { enabled })
+  ui.motorAddress.disabled = true;
+  postJson("/api/motor", { enabled, address })
     .then((response) => {
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       return response.json();
@@ -66,7 +87,10 @@ function toggleMotor() {
       ui.motorStatus.textContent = `Motor request failed: ${error.message}`;
       ui.motorStatus.title = ui.motorStatus.textContent;
     })
-    .finally(() => { ui.motorOn.disabled = false; });
+    .finally(() => {
+      ui.motorOn.disabled = false;
+      ui.motorAddress.disabled = false;
+    });
 }
 
 function bindEvents() {
@@ -91,6 +115,7 @@ function bindEvents() {
     ui.followSteps.value = clampSteps(ui.followSteps.value);
   });
   ui.motionOn.addEventListener("change", toggleMotion);
+  ui.motorAddress.addEventListener("change", saveMotorAddress);
   ui.motorOn.addEventListener("change", toggleMotor);
   ui.streamImage.addEventListener("load", renderFollowIdle, { once: true });
   document.addEventListener("keydown", handleKeydown);
