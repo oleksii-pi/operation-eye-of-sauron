@@ -1,19 +1,18 @@
-function applyMotor(data) {
-  ui.motorOn.checked = Boolean(data.enabled);
-  if (data.address && !ui.motorAddress.value.trim()) {
-    ui.motorAddress.value = data.address;
-    saveMotorAddress();
+function applyPower(data) {
+  if (data.address && !ui.powerAddress.value.trim()) {
+    ui.powerAddress.value = data.address;
+    savePowerAddress();
   }
-  ui.motorStatus.textContent = data.error || "";
-  ui.motorStatus.title = ui.motorStatus.textContent;
+  ui.powerStatus.textContent = data.error || (data.enabled ? "Flash sent" : "Ready to flash");
+  ui.powerStatus.title = ui.powerStatus.textContent;
 }
 
-function loadMotorAddress() {
-  ui.motorAddress.value = localStorage.getItem(motorAddressStorageKey) || "";
+function loadPowerAddress() {
+  ui.powerAddress.value = localStorage.getItem(powerAddressStorageKey) || "";
 }
 
-function saveMotorAddress() {
-  localStorage.setItem(motorAddressStorageKey, ui.motorAddress.value.trim());
+function savePowerAddress() {
+  localStorage.setItem(powerAddressStorageKey, ui.powerAddress.value.trim());
 }
 
 function renderFollowIdle() {
@@ -64,32 +63,29 @@ function startLatency() {
     });
 }
 
-function toggleMotor() {
-  const enabled = ui.motorOn.checked;
-  const address = ui.motorAddress.value.trim();
-  saveMotorAddress();
-  if (enabled && !address) {
-    ui.motorOn.checked = false;
-    ui.motorStatus.textContent = "Motor UDP address is required";
-    ui.motorStatus.title = ui.motorStatus.textContent;
+function flashPower() {
+  const address = ui.powerAddress.value.trim();
+  savePowerAddress();
+  if (!address) {
+    ui.powerStatus.textContent = "Flash UDP address is required";
+    ui.powerStatus.title = ui.powerStatus.textContent;
     return;
   }
-  ui.motorOn.disabled = true;
-  ui.motorAddress.disabled = true;
-  postJson("/api/motor", { enabled, address })
+  ui.powerOn.disabled = true;
+  ui.powerAddress.disabled = true;
+  postJson("/api/power", { enabled: true, address })
     .then((response) => {
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       return response.json();
     })
-    .then(applyMotor)
+    .then(applyPower)
     .catch((error) => {
-      ui.motorOn.checked = !enabled;
-      ui.motorStatus.textContent = `Motor request failed: ${error.message}`;
-      ui.motorStatus.title = ui.motorStatus.textContent;
+      ui.powerStatus.textContent = `Flash request failed: ${error.message}`;
+      ui.powerStatus.title = ui.powerStatus.textContent;
     })
     .finally(() => {
-      ui.motorOn.disabled = false;
-      ui.motorAddress.disabled = false;
+      ui.powerOn.disabled = false;
+      ui.powerAddress.disabled = false;
     });
 }
 
@@ -116,8 +112,8 @@ function bindEvents() {
   });
   ui.motionOn.addEventListener("change", toggleMotion);
   ui.motionSound.addEventListener("change", toggleMotionSound);
-  ui.motorAddress.addEventListener("change", saveMotorAddress);
-  ui.motorOn.addEventListener("change", toggleMotor);
+  ui.powerAddress.addEventListener("change", savePowerAddress);
+  ui.powerOn.addEventListener("click", flashPower);
   ui.streamImage.addEventListener("load", renderFollowIdle, { once: true });
   document.addEventListener("keydown", handleKeydown);
 }

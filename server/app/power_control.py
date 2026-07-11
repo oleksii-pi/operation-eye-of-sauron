@@ -2,11 +2,11 @@ import socket
 import time
 
 
-class MotorControl:
-    def __init__(self, on_seconds: int):
+class PowerControl:
+    def __init__(self, on_ms: int):
         self.server_ip = ""
         self.udp_port = 0
-        self.on_seconds = on_seconds
+        self.on_ms = on_ms
         self._enabled = False
         self._enabled_until = 0.0
         self._error = ""
@@ -31,14 +31,14 @@ class MotorControl:
         if not self._set_address(address):
             return self.info()
         if not self.server_ip:
-            self._error = "Motor UDP address is not configured"
+            self._error = "Flash UDP address is not configured"
             return self.info()
 
-        command = f"on:{self.on_seconds}" if enabled else "off"
+        command = f"on:{self.on_ms}" if enabled else "off"
         try:
             self._send(command)
             self._enabled = enabled
-            self._enabled_until = time.monotonic() + self.on_seconds if enabled else 0.0
+            self._enabled_until = time.monotonic() + (self.on_ms / 1000) if enabled else 0.0
             self._error = ""
         except OSError as exc:
             self._error = str(exc)
@@ -75,19 +75,19 @@ class MotorControl:
         address = raw_address.strip()
         address = address.removeprefix("udp://").removeprefix("http://").removeprefix("https://").strip("/")
         if not address:
-            raise ValueError("Motor UDP address is required")
+            raise ValueError("Flash UDP address is required")
         if ":" not in address:
-            raise ValueError("Motor UDP must be host:port")
+            raise ValueError("Flash UDP must be host:port")
 
         host, port = address.rsplit(":", 1)
         host = host.strip()
         if not host:
-            raise ValueError("Motor UDP host is required")
+            raise ValueError("Flash UDP host is required")
         try:
             parsed_port = int(port)
         except ValueError:
-            raise ValueError("Motor UDP port must be a number")
+            raise ValueError("Flash UDP port must be a number")
 
         if parsed_port < 1 or parsed_port > 65535:
-            raise ValueError("Motor UDP port must be 1-65535")
+            raise ValueError("Flash UDP port must be 1-65535")
         return host, parsed_port

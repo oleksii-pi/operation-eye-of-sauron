@@ -30,7 +30,7 @@ cp .env.example .env
 
 ```env
 RTSP_URL=rtsp://user:password@camera-ip:554/stream1
-MOTOR_ON_SECONDS=1
+POWER_ON_MS=200
 STREAM_WIDTH=1280
 STREAM_HEIGHT=720
 JPEG_QUALITY=90
@@ -59,11 +59,11 @@ http://127.0.0.1:8000
 - Stream quality can be tuned with `STREAM_WIDTH`, `STREAM_HEIGHT`, `JPEG_QUALITY`, and `STREAM_FPS`.
 - Motion detection uses `MOTION_MIN_SIZE_CM` at `MOTION_DISTANCE_CM`.
 - The page has a motion size slider that updates the threshold without restarting.
-- The page has a `Motor UDP` field for the motor target, for example `192.168.0.231:4210`.
+- The page has a `Flash UDP` field for the power target, for example `192.168.0.231:4210`.
 - `MOTION_HORIZONTAL_FOV_DEGREES` should match the camera lens for better size estimates.
 - If the RTSP source drops, the server keeps running and shows a placeholder image.
 - `GET /api/status` returns the current camera status.
 - `POST /api/motion-size` accepts `min_size_cm`.
 - `POST /api/direction` accepts `horizontal` and `vertical` values from `-100` to `100`.
 - Camera movement uses ONVIF absolute PTZ on `ONVIF_PORT`.
-- `POST /api/motor` accepts `enabled` and `address`, then sends UDP `on:5` or `off`.
+- `POST /api/power` accepts `enabled` and `address`, then sends UDP `on:200` or `off`.

@@ -13,7 +13,8 @@ function syncMotionSound() {
   ui.motionSoundRow.hidden = !ui.motionOn.checked;
   ui.motionSound.disabled = !ui.motionOn.checked;
   ui.motionSound.checked = state.motionSoundEnabled;
-  if (!ui.motionOn.checked) state.motionEventActive = false;
+  if (!ui.motionOn.checked) resetMotionSoundState();
+  if (!state.motionSoundEnabled) stopMotionSounds();
 }
 
 function toggleMotionSound() {
@@ -25,22 +26,41 @@ function toggleMotionSound() {
 function handleMotionDetection(data) {
   if (!data) return;
   applyMotion(data);
-  if (!data.enabled || Number(data.boxes) <= 0) {
-    state.motionEventActive = false;
+  const motionBoxes = data.enabled ? Math.max(0, Number(data.boxes) || 0) : 0;
+  if (motionBoxes <= 0) {
+    state.motionBoxCount = 0;
     return;
   }
-  if (state.motionEventActive) return;
-  state.motionEventActive = true;
-  playMotionSound();
+  playMotionSounds(Math.max(0, motionBoxes - state.motionBoxCount));
+  state.motionBoxCount = motionBoxes;
 }
 
-function playMotionSound() {
-  const now = Date.now();
-  if (!state.motionSoundEnabled || now - state.lastMotionSoundAt < 5000) return;
-  state.lastMotionSoundAt = now;
-  state.motionSound.pause();
-  state.motionSound.currentTime = 0;
-  state.motionSound.play().catch(() => {});
+function playMotionSounds(count) {
+  if (!state.motionSoundEnabled || count <= 0) return;
+  for (let index = 0; index < count; index += 1) {
+    const sound = state.motionSound.cloneNode();
+    const release = () => {
+      state.activeMotionSounds.delete(sound);
+    };
+    state.activeMotionSounds.add(sound);
+    sound.addEventListener("ended", release, { once: true });
+    sound.addEventListener("error", release, { once: true });
+    sound.currentTime = 0;
+    sound.play().catch(release);
+  }
+}
+
+function stopMotionSounds() {
+  state.activeMotionSounds.forEach((sound) => {
+    sound.pause();
+    sound.currentTime = 0;
+  });
+  state.activeMotionSounds.clear();
+}
+
+function resetMotionSoundState() {
+  state.motionBoxCount = 0;
+  stopMotionSounds();
 }
 
 function toggleMotion() {

@@ -12,7 +12,7 @@ from app.config import get_settings
 from app.follow import FollowController
 from app.latency_probe import LatencyProbe
 from app.motion_detector import MotionDetector
-from app.motor_control import MotorControl
+from app.power_control import PowerControl
 from app.recorder import FrameRecorder
 
 
@@ -34,7 +34,7 @@ camera = CameraStream(
 )
 direction = CameraDirection(settings.rtsp_url, settings.onvif_port)
 latency = LatencyProbe(camera, direction)
-motor = MotorControl(settings.motor_on_seconds)
+power = PowerControl(settings.power_on_ms)
 follower = FollowController(direction, detector, settings.stream_width, settings.stream_height)
 app = FastAPI(title="operation-eye-of-sauron")
 static_dir = Path(__file__).resolve().parent / "static"
@@ -55,7 +55,7 @@ class MotionRequest(BaseModel):
     enabled: bool
 
 
-class MotorRequest(BaseModel):
+class PowerRequest(BaseModel):
     enabled: bool
     address: str = ""
 
@@ -115,7 +115,7 @@ def status() -> JSONResponse:
         "recording": camera.recording_info(),
         "direction": direction.info(),
         "latency": latency.info(),
-        "motor": motor.info(),
+        "power": power.info(),
     })
 
 
@@ -149,9 +149,9 @@ def set_motion(request: MotionRequest) -> JSONResponse:
     return JSONResponse(detector.set_enabled(request.enabled))
 
 
-@app.post("/api/motor")
-def set_motor(request: MotorRequest) -> JSONResponse:
-    return JSONResponse(motor.set_enabled(request.enabled, request.address))
+@app.post("/api/power")
+def set_power(request: PowerRequest) -> JSONResponse:
+    return JSONResponse(power.set_enabled(request.enabled, request.address))
 
 
 @app.post("/api/follow")

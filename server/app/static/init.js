@@ -1,5 +1,5 @@
 loadLimits();
-loadMotorAddress();
+loadPowerAddress();
 loadMotionSound();
 centerDirection();
 bindEvents();

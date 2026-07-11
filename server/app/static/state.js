@@ -18,9 +18,9 @@ const ui = {
   followStatus: document.querySelector("#followStatus"),
   record: document.querySelector("#record"),
   recordStatus: document.querySelector("#recordStatus"),
-  motorAddress: document.querySelector("#motorAddress"),
-  motorOn: document.querySelector("#motorOn"),
-  motorStatus: document.querySelector("#motorStatus"),
+  powerAddress: document.querySelector("#powerAddress"),
+  powerOn: document.querySelector("#powerOn"),
+  powerStatus: document.querySelector("#powerStatus"),
   latencyValue: document.querySelector("#latencyValue"),
   latencyStart: document.querySelector("#latencyStart"),
 };
@@ -31,14 +31,14 @@ const state = {
   isRecording: false,
   streamLagMs: 1000,
   motionSoundEnabled: false,
-  motionEventActive: false,
-  lastMotionSoundAt: 0,
+  motionBoxCount: 0,
+  activeMotionSounds: new Set(),
   motionSound: new Audio("/static/mouse-click.mp3"),
 };
 
 const streamUrl = "/stream.mjpg";
 const limitStorageKey = "cameraLimits";
-const motorAddressStorageKey = "motorUdpAddress";
+const powerAddressStorageKey = "powerUdpAddress";
 const motionSoundStorageKey = "motionSoundEnabled";
 const limitInputs = [ui.minH, ui.maxH, ui.minV, ui.maxV];
 

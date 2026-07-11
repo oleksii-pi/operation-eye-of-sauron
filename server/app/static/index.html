@@ -40,18 +40,15 @@
           <button id="follow" type="button">Follow</button>
           <input id="followSteps" class="steps-input" type="number" min="1" max="5" value="3" step="1" aria-label="Follow steps">
         </div>
-        <div id="followStatus" class="motor-status">Follow idle</div>
+        <div id="followStatus" class="power-status">Follow idle</div>
         <button id="record" type="button">Record</button>
         <div id="recordStatus" class="record-status">Not recording</div>
-        <label class="control" for="motorAddress">
-          <span>Motor UDP</span>
-          <input id="motorAddress" class="limit-input" type="text" placeholder="192.168.0.231:4210" autocomplete="off">
+        <label class="control" for="powerAddress">
+          <span>Flash UDP</span>
+          <input id="powerAddress" class="limit-input" type="text" placeholder="192.168.0.231:4210" autocomplete="off">
         </label>
-        <label class="check" for="motorOn">
-          <input id="motorOn" type="checkbox">
-          <span>Motor on</span>
-        </label>
-        <div id="motorStatus" class="motor-status"></div>
+        <button id="powerOn" type="button">Flash</button>
+        <div id="powerStatus" class="power-status"></div>
       </div>
       <div class="direction-controls">
         <div class="vertical-control">

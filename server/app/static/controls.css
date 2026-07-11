@@ -152,14 +152,14 @@ button.recording {
   background: #521b1b;
 }
 .record-status,
-.motor-status {
+.power-status {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
   font-size: 12px;
   color: #bbb;
 }
-.motor-status { min-height: 14px; }
+.power-status { min-height: 14px; }
 .check {
   display: flex;
   align-items: center;

@@ -5,47 +5,54 @@
 const char *ssid = WIFI_SSID;
 const char *password = WIFI_PASSWORD;
 
-const int controlPin = 16;
-const bool activeLow = true;
+const int switchPin = 16;
 const unsigned int udpPort = 4210;
-const unsigned long defaultOnSeconds = 5;
-const unsigned long maxOnSeconds = 60;
+const unsigned long defaultOnMs = 5000, maxOnMs = 600000, pressMs = 100;
 
 WiFiUDP udp;
-bool outputOn = false;
-unsigned long offAtMs = 0;
-unsigned long lastWifiRetryMs = 0;
+bool lampOn = false;
+bool toggleScheduled = false;
+unsigned long toggleAtMs = 0, lastWifiRetryMs = 0;
 
 const char *wifiStatusName(wl_status_t status)
 {
   switch (status)
   {
-  case WL_IDLE_STATUS: return "idle";
-  case WL_NO_SSID_AVAIL: return "ssid not found";
-  case WL_SCAN_COMPLETED: return "scan complete";
-  case WL_CONNECTED: return "connected";
-  case WL_CONNECT_FAILED: return "connect failed";
-  case WL_CONNECTION_LOST: return "connection lost";
-  case WL_DISCONNECTED: return "disconnected";
-  default: return "unknown";
+    case WL_IDLE_STATUS: return "idle";
+    case WL_NO_SSID_AVAIL: return "ssid not found";
+    case WL_SCAN_COMPLETED: return "scan complete";
+    case WL_CONNECTED: return "connected";
+    case WL_CONNECT_FAILED: return "connect failed";
+    case WL_CONNECTION_LOST: return "connection lost";
+    case WL_DISCONNECTED: return "disconnected";
+    default: return "unknown";
   }
 }
 
-void writeOutput(bool on)
+void releaseSwitch() { pinMode(switchPin, INPUT); }
+
+void pressSwitch()
 {
-  digitalWrite(controlPin, activeLow ? !on : on);
-  outputOn = on;
-  if (!on)
-  {
-    offAtMs = 0;
-  }
+  pinMode(switchPin, OUTPUT);
+  digitalWrite(switchPin, LOW);
+  delay(pressMs);
+  releaseSwitch();
+  lampOn = !lampOn;
 }
 
-void startOutput(unsigned long seconds)
+void scheduleToggle(unsigned long durationMs)
 {
-  seconds = min(max(seconds, 1UL), maxOnSeconds);
-  writeOutput(true);
-  offAtMs = millis() + seconds * 1000UL;
+  durationMs = min(max(durationMs, 1UL), maxOnMs);
+  pressSwitch();
+  toggleScheduled = true;
+  toggleAtMs = millis() + durationMs;
+}
+
+void turnLampOff()
+{
+  toggleScheduled = false;
+  toggleAtMs = 0;
+  if (lampOn) pressSwitch();
 }
 
 void sendReply(const String &message)
@@ -58,17 +65,11 @@ void sendReply(const String &message)
 String readCommand()
 {
   int packetSize = udp.parsePacket();
-  if (!packetSize)
-  {
-    return "";
-  }
+  if (!packetSize) return "";
 
   char buffer[32];
   int length = udp.read(buffer, sizeof(buffer) - 1);
-  if (length < 0)
-  {
-    return "";
-  }
+  if (length < 0) return "";
 
   buffer[length] = '\0';
   String command(buffer);
@@ -77,74 +78,60 @@ String readCommand()
   return command;
 }
 
-bool parseOnSeconds(const String &command, unsigned long &seconds)
+bool parseOnMs(const String &command, unsigned long &durationMs)
 {
   if (command == "on")
   {
-    seconds = defaultOnSeconds;
+    durationMs = defaultOnMs;
     return true;
   }
-
-  if (!command.startsWith("on:"))
-  {
-    return false;
-  }
+  if (!command.startsWith("on:")) return false;
 
   long parsed = command.substring(3).toInt();
-  if (parsed <= 0)
-  {
-    return false;
-  }
+  if (parsed <= 0) return false;
 
-  seconds = min((unsigned long)parsed, maxOnSeconds);
+  durationMs = min((unsigned long)parsed, maxOnMs);
   return true;
 }
 
 void handleCommand(const String &command)
 {
-  if (!command.length())
-  {
-    return;
-  }
+  if (!command.length()) return;
 
   if (command == "off")
   {
-    writeOutput(false);
+    turnLampOff();
     sendReply("ok off");
     return;
   }
 
-  unsigned long seconds = defaultOnSeconds;
-  if (parseOnSeconds(command, seconds))
+  unsigned long durationMs = defaultOnMs;
+  if (parseOnMs(command, durationMs))
   {
-    startOutput(seconds);
-    sendReply("ok on:" + String(seconds));
+    scheduleToggle(durationMs);
+    sendReply("ok on:" + String(durationMs));
     return;
   }
 
-  sendReply("error expected on:seconds or off");
+  sendReply("error expected on:milliseconds or off");
 }
 
-void maintainTimer()
+void maintainToggle()
 {
-  if (outputOn && (long)(millis() - offAtMs) >= 0)
+  if (toggleScheduled && (long)(millis() - toggleAtMs) >= 0)
   {
-    writeOutput(false);
+    toggleScheduled = false;
+    toggleAtMs = 0;
+    pressSwitch();
   }
 }
 
 void maintainWifi()
 {
-  if (WiFi.status() == WL_CONNECTED)
-  {
-    return;
-  }
+  if (WiFi.status() == WL_CONNECTED) return;
 
   unsigned long now = millis();
-  if (now - lastWifiRetryMs < 5000)
-  {
-    return;
-  }
+  if (now - lastWifiRetryMs < 5000) return;
 
   lastWifiRetryMs = now;
   WiFi.disconnect();
@@ -156,8 +143,7 @@ void setup()
   Serial.begin(115200);
   delay(500);
 
-  pinMode(controlPin, OUTPUT);
-  writeOutput(false);
+  releaseSwitch();
 
   WiFi.begin(ssid, password);
 
@@ -178,7 +164,7 @@ void setup()
   }
 
   Serial.println();
-  Serial.print("UDP motor control on ");
+  Serial.print("UDP lamp control on ");
   Serial.print(WiFi.localIP());
   Serial.print(":");
   Serial.println(udpPort);
@@ -190,6 +176,6 @@ void loop()
 {
   maintainWifi();
   handleCommand(readCommand());
-  maintainTimer();
+  maintainToggle();
   delay(1);
 }
