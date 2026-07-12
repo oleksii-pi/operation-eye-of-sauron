@@ -34,7 +34,7 @@ camera = CameraStream(
 )
 direction = CameraDirection(settings.rtsp_url, settings.onvif_port)
 latency = LatencyProbe(camera, direction)
-power = PowerControl(settings.power_on_ms)
+light_controller = PowerControl(settings.light_on_ms)
 follower = FollowController(direction, detector, settings.stream_width, settings.stream_height)
 app = FastAPI(title="operation-eye-of-sauron")
 static_dir = Path(__file__).resolve().parent / "static"
@@ -55,7 +55,7 @@ class MotionRequest(BaseModel):
     enabled: bool
 
 
-class PowerRequest(BaseModel):
+class LightRequest(BaseModel):
     enabled: bool
     address: str = ""
 
@@ -115,7 +115,8 @@ def status() -> JSONResponse:
         "recording": camera.recording_info(),
         "direction": direction.info(),
         "latency": latency.info(),
-        "power": power.info(),
+        "light": light_controller.info(),
+        "power": light_controller.info(),
     })
 
 
@@ -149,9 +150,14 @@ def set_motion(request: MotionRequest) -> JSONResponse:
     return JSONResponse(detector.set_enabled(request.enabled))
 
 
+@app.post("/api/light")
+def set_light(request: LightRequest) -> JSONResponse:
+    return JSONResponse(light_controller.set_enabled(request.enabled, request.address))
+
+
 @app.post("/api/power")
-def set_power(request: PowerRequest) -> JSONResponse:
-    return JSONResponse(power.set_enabled(request.enabled, request.address))
+def set_power(request: LightRequest) -> JSONResponse:
+    return JSONResponse(light_controller.set_enabled(request.enabled, request.address))
 
 
 @app.post("/api/follow")

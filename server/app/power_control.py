@@ -31,7 +31,7 @@ class PowerControl:
         if not self._set_address(address):
             return self.info()
         if not self.server_ip:
-            self._error = "Flash UDP address is not configured"
+            self._error = "LED controller UDP address is not configured"
             return self.info()
 
         command = f"on:{self.on_ms}" if enabled else "off"
@@ -75,19 +75,19 @@ class PowerControl:
         address = raw_address.strip()
         address = address.removeprefix("udp://").removeprefix("http://").removeprefix("https://").strip("/")
         if not address:
-            raise ValueError("Flash UDP address is required")
+            raise ValueError("LED controller UDP address is required")
         if ":" not in address:
-            raise ValueError("Flash UDP must be host:port")
+            raise ValueError("LED controller UDP must be host:port")
 
         host, port = address.rsplit(":", 1)
         host = host.strip()
         if not host:
-            raise ValueError("Flash UDP host is required")
+            raise ValueError("LED controller UDP host is required")
         try:
             parsed_port = int(port)
         except ValueError:
-            raise ValueError("Flash UDP port must be a number")
+            raise ValueError("LED controller UDP port must be a number")
 
         if parsed_port < 1 or parsed_port > 65535:
-            raise ValueError("Flash UDP port must be 1-65535")
+            raise ValueError("LED controller UDP port must be 1-65535")
         return host, parsed_port

@@ -4,19 +4,14 @@ This application represents a set of tools that manage:
    Tapo TP-Link C220
    360° WiFi Indoor Surveillance Camera, 2K 4MP, IR Night Vision, Motion Detection, Two-Way Audio, Compatible with Alexa and Google Assistant, for Babies/Pets
 
-2. Single board computer
-   Raspberry Pi 3 Model B v1.2, 2015
-   Purpose: main computing center: analysing image from web cam,
-   in realtime detect moving objects (hand),
-   and if expected object detected,
-   move camera directly to the object
-   and send signal to enable water pump.
+2. Host computer
+   Mac
+   Purpose: main control node that reads the camera stream,
+   detects motion in real time,
+   moves the camera toward the target,
+   and sends UDP commands to the light controller.
 
-3. Water pump
-   Yaskyly Electric Water Gun
-   for Children Adults with LED Lights and Sound Effects, Automatic Spray Gun, Rechargeable Summer Outdoor Toy for Pool, Beach, Party, Garden
-
-4. Water pump relay
-   4 Channel DC 5V Relay Module
-   Relay Module with Optocoupler Low Level Trigger Board for Arduino UNO R3, 1280 DSP ARM PIC AVR STM32, High Performance Module. Ideal for DIY Projects and Automation, Color: Blue
-
+3. LED light controller
+   ESP32-D0WDQ6 development board
+   Purpose: receive UDP `on:<duration-ms>` and `off` commands
+   and pulse the connected LED output.

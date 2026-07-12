@@ -3,7 +3,7 @@ function applyPower(data) {
     ui.powerAddress.value = data.address;
     savePowerAddress();
   }
-  ui.powerStatus.textContent = data.error || (data.enabled ? "Flash sent" : "Ready to flash");
+  ui.powerStatus.textContent = data.error || (data.enabled ? "Light pulse sent" : "Ready");
   ui.powerStatus.title = ui.powerStatus.textContent;
 }
 
@@ -67,20 +67,20 @@ function flashPower() {
   const address = ui.powerAddress.value.trim();
   savePowerAddress();
   if (!address) {
-    ui.powerStatus.textContent = "Flash UDP address is required";
+    ui.powerStatus.textContent = "LED controller UDP address is required";
     ui.powerStatus.title = ui.powerStatus.textContent;
     return;
   }
   ui.powerOn.disabled = true;
   ui.powerAddress.disabled = true;
-  postJson("/api/power", { enabled: true, address })
+  postJson("/api/light", { enabled: true, address })
     .then((response) => {
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       return response.json();
     })
     .then(applyPower)
     .catch((error) => {
-      ui.powerStatus.textContent = `Flash request failed: ${error.message}`;
+      ui.powerStatus.textContent = `Light pulse request failed: ${error.message}`;
       ui.powerStatus.title = ui.powerStatus.textContent;
     })
     .finally(() => {

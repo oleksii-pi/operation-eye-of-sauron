@@ -39,7 +39,7 @@ function updateLatency() {
       handleMotionDetection(data.settings && data.settings.detection);
       applyLatency(data.latency);
       applyRecording(data.recording || {});
-      applyPower(data.power || {});
+      applyPower(data.light || data.power || {});
     })
     .catch(() => {
       ui.latencyValue.value = "Latency: offline";
@@ -60,7 +60,7 @@ function loadStatus() {
       }
       applyRecording(data.recording || {});
       applyLatency(data.latency);
-      applyPower(data.power || {});
+      applyPower(data.light || data.power || {});
     })
     .catch(() => {});
 }
