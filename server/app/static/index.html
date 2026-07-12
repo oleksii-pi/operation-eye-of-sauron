@@ -24,23 +24,24 @@
           <output id="latencyValue" class="latency">Latency: unknown</output>
           <button id="latencyStart" type="button">Calibrate</button>
         </div>
-        <label class="check" for="motionOn">
-          <input id="motionOn" type="checkbox">
-          <span>Motion detection</span>
-        </label>
+        <div class="motion-row">
+          <label class="check" for="motionOn">
+            <input id="motionOn" type="checkbox">
+            <span>Motion detection</span>
+          </label>
+          <div class="control motion-size">
+            <label for="motionSize"><span>Size, cm</span><output id="motionSizeValue">5</output></label>
+            <div class="motion-size-slider">
+              <button id="motionSizeDown" class="size-step" type="button" aria-label="Decrease motion size">-</button>
+              <input id="motionSize" type="range" min="1" max="50" value="5" step="1">
+              <button id="motionSizeUp" class="size-step" type="button" aria-label="Increase motion size">+</button>
+            </div>
+          </div>
+        </div>
         <label id="motionSoundRow" class="check" for="motionSound" hidden>
           <input id="motionSound" type="checkbox">
           <span>Motion sound</span>
         </label>
-        <div class="control">
-          <label for="motionSize"><span>Motion size, cm</span><output id="motionSizeValue">5</output></label>
-          <input id="motionSize" type="range" min="1" max="50" value="5" step="1">
-        </div>
-        <div class="follow-row">
-          <button id="follow" type="button">Follow</button>
-          <input id="followSteps" class="steps-input" type="number" min="1" max="5" value="3" step="1" aria-label="Follow steps">
-        </div>
-        <div id="followStatus" class="power-status">Follow idle</div>
         <button id="record" type="button">Record</button>
         <div id="recordStatus" class="record-status">Not recording</div>
         <label class="control" for="powerAddress">

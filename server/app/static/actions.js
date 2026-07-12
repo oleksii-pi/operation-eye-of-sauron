@@ -104,39 +104,6 @@ function centerDirection() {
   postDirection();
 }
 
-function renderFollow(data) {
-  const steps = data.adjustments ? data.adjustments.length : 0;
-  const maxSteps = clampSteps(ui.followSteps.value);
-  ui.followStatus.textContent = `${data.status || "done"} · ${steps}/${maxSteps} · ${Math.round((data.lag_seconds || 1) * 1000)}ms`;
-  ui.followStatus.title = ui.followStatus.textContent;
-  if (data.direction) {
-    ui.horizontal.value = clampHorizontal(data.direction.horizontal);
-    ui.vertical.value = clampVertical(data.direction.vertical);
-    renderValues();
-  }
-}
-
-function runFollow() {
-  ui.followSteps.value = clampSteps(ui.followSteps.value);
-  ui.follow.disabled = true;
-  ui.followSteps.disabled = true;
-  ui.followStatus.textContent = "Following...";
-  postJson("/api/follow", followPayload())
-    .then((response) => {
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      return response.json();
-    })
-    .then(renderFollow)
-    .catch((error) => {
-      ui.followStatus.textContent = `Follow failed: ${error.message}`;
-      ui.followStatus.title = ui.followStatus.textContent;
-    })
-    .finally(() => {
-      ui.follow.disabled = false;
-      ui.followSteps.disabled = false;
-    });
-}
-
 function renderRecording(file, error) {
   ui.record.textContent = state.isRecording ? "Stop" : "Record";
   ui.record.classList.toggle("recording", state.isRecording);

@@ -10,7 +10,9 @@
   border-radius: 8px;
   background: rgb(0 0 0 / 70%);
 }
-.controls > * { min-width: 0; }
+.controls > * {
+  min-width: 0;
+}
 .control {
   display: grid;
   gap: 8px;
@@ -71,7 +73,9 @@ input[type="number"]::-webkit-inner-spin-button {
   margin: 0;
   appearance: none;
 }
-input[type="number"] { appearance: textfield; }
+input[type="number"] {
+  appearance: textfield;
+}
 input[type="range"] {
   width: 100%;
   min-width: 0;
@@ -159,7 +163,9 @@ button.recording {
   font-size: 12px;
   color: #bbb;
 }
-.power-status { min-height: 14px; }
+.power-status {
+  min-height: 14px;
+}
 .check {
   display: flex;
   align-items: center;
@@ -173,15 +179,24 @@ button.recording {
   height: 16px;
   accent-color: #5fd18d;
 }
-.follow-row {
+.motion-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 40px;
+  grid-template-columns: minmax(0, 1fr) 96px;
   gap: 8px;
-  align-items: stretch;
-  min-width: 0;
-  width: 100%;
+  align-items: center;
 }
-#follow {
-  width: 100%;
-  min-width: 0;
+.motion-size { gap: 4px; }
+.motion-size label { grid-template-columns: minmax(0, 1fr) 22px; }
+.motion-size-slider {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) 22px;
+  gap: 4px;
+  align-items: center;
+}
+.size-step {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 4px;
+  line-height: 1;
 }

@@ -15,11 +15,6 @@ function savePowerAddress() {
   localStorage.setItem(powerAddressStorageKey, ui.powerAddress.value.trim());
 }
 
-function renderFollowIdle() {
-  ui.followStatus.textContent = `Follow idle · ${(state.streamLagMs / 1000).toFixed(1)}s`;
-  ui.followStatus.title = ui.followStatus.textContent;
-}
-
 function applyLatency(data) {
   if (!data || data.status === "waiting") {
     ui.latencyValue.value = "Latency: unknown";
@@ -36,10 +31,8 @@ function applyLatency(data) {
   ui.latencyStart.disabled = false;
   if (data.status === "done") {
     const seconds = Math.max(0.1, Number(data.seconds) || 0);
-    state.streamLagMs = Math.round(seconds * 1000);
     ui.latencyValue.value = `Latency: ${seconds.toFixed(1)}s`;
     ui.latencyValue.title = "Measured from ONVIF move to visible RTSP frame change";
-    if (ui.followStatus.textContent.startsWith("Follow idle")) renderFollowIdle();
     return;
   }
   ui.latencyValue.value = "Latency: unavailable";
@@ -104,18 +97,23 @@ function bindEvents() {
     renderValues();
     sendMotionSize();
   });
+  ui.motionSizeDown.addEventListener("click", () => adjustMotionSize(-1));
+  ui.motionSizeUp.addEventListener("click", () => adjustMotionSize(1));
   ui.record.addEventListener("click", toggleRecording);
-  ui.follow.addEventListener("click", runFollow);
   ui.latencyStart.addEventListener("click", startLatency);
-  ui.followSteps.addEventListener("change", () => {
-    ui.followSteps.value = clampSteps(ui.followSteps.value);
-  });
   ui.motionOn.addEventListener("change", toggleMotion);
   ui.motionSound.addEventListener("change", toggleMotionSound);
   ui.powerAddress.addEventListener("change", savePowerAddress);
   ui.powerOn.addEventListener("click", flashPower);
-  ui.streamImage.addEventListener("load", renderFollowIdle, { once: true });
   document.addEventListener("keydown", handleKeydown);
+}
+
+function adjustMotionSize(delta) {
+  const min = Number(ui.motionSize.min) || 1;
+  const max = Number(ui.motionSize.max) || 50;
+  ui.motionSize.value = Math.max(min, Math.min(max, Number(ui.motionSize.value) + delta));
+  renderValues();
+  sendMotionSize();
 }
 
 function bindLimitInput(input) {

@@ -64,15 +64,3 @@ function applyLimits(send = false, changedId = "") {
   renderValues();
   if (changed && send) postDirection();
 }
-
-function followPayload() {
-  const payload = {
-    lag_ms: state.streamLagMs,
-    max_adjustments: Number(ui.followSteps.value),
-  };
-  if (ui.minH.value.trim() !== "") payload.min_h = Number(ui.minH.value);
-  if (ui.maxH.value.trim() !== "") payload.max_h = Number(ui.maxH.value);
-  if (ui.minV.value.trim() !== "") payload.min_v = Number(ui.minV.value);
-  if (ui.maxV.value.trim() !== "") payload.max_v = Number(ui.maxV.value);
-  return payload;
-}

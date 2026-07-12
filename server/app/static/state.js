@@ -9,13 +9,12 @@ const ui = {
   motionSoundRow: document.querySelector("#motionSoundRow"),
   motionSound: document.querySelector("#motionSound"),
   motionSize: document.querySelector("#motionSize"),
+  motionSizeDown: document.querySelector("#motionSizeDown"),
+  motionSizeUp: document.querySelector("#motionSizeUp"),
   horizontalValue: document.querySelector("#horizontalValue"),
   verticalValue: document.querySelector("#verticalValue"),
   motionSizeValue: document.querySelector("#motionSizeValue"),
   streamImage: document.querySelector("#streamImage"),
-  follow: document.querySelector("#follow"),
-  followSteps: document.querySelector("#followSteps"),
-  followStatus: document.querySelector("#followStatus"),
   record: document.querySelector("#record"),
   recordStatus: document.querySelector("#recordStatus"),
   powerAddress: document.querySelector("#powerAddress"),
@@ -29,7 +28,6 @@ const state = {
   sendTimer: 0,
   motionTimer: 0,
   isRecording: false,
-  streamLagMs: 1000,
   motionSoundEnabled: false,
   motionBoxCount: 0,
   activeMotionSounds: new Set(),
@@ -44,10 +42,6 @@ const limitInputs = [ui.minH, ui.maxH, ui.minV, ui.maxV];
 
 function clamp(value, min = -100, max = 100) {
   return Math.max(min, Math.min(max, Number(value) || 0));
-}
-
-function clampSteps(value) {
-  return Math.max(1, Math.min(5, Number(value) || 3));
 }
 
 function renderValues() {

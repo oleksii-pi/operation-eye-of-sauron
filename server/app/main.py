@@ -9,7 +9,6 @@ from pydantic import BaseModel
 from app.camera import CameraStream
 from app.camera_direction import CameraDirection
 from app.config import get_settings
-from app.follow import FollowController
 from app.latency_probe import LatencyProbe
 from app.motion_detector import MotionDetector
 from app.power_control import PowerControl
@@ -35,7 +34,6 @@ camera = CameraStream(
 direction = CameraDirection(settings.rtsp_url, settings.onvif_port)
 latency = LatencyProbe(camera, direction)
 light_controller = PowerControl(settings.light_on_ms)
-follower = FollowController(direction, detector, settings.stream_width, settings.stream_height)
 app = FastAPI(title="operation-eye-of-sauron")
 static_dir = Path(__file__).resolve().parent / "static"
 index_file = static_dir / "index.html"
@@ -58,15 +56,6 @@ class MotionRequest(BaseModel):
 class LightRequest(BaseModel):
     enabled: bool
     address: str = ""
-
-
-class FollowRequest(BaseModel):
-    lag_ms: int = 1000
-    max_adjustments: int = 3
-    min_h: int = -100
-    max_h: int = 100
-    min_v: int = -100
-    max_v: int = 100
 
 
 @app.on_event("startup")
@@ -158,22 +147,6 @@ def set_light(request: LightRequest) -> JSONResponse:
 @app.post("/api/power")
 def set_power(request: LightRequest) -> JSONResponse:
     return JSONResponse(light_controller.set_enabled(request.enabled, request.address))
-
-
-@app.post("/api/follow")
-def follow(request: FollowRequest) -> JSONResponse:
-    lag_seconds = min(4.0, max(1.2, request.lag_ms / 1000))
-    max_adjustments = min(5, max(1, request.max_adjustments))
-    return JSONResponse(
-        follower.follow(
-            lag_seconds,
-            max_adjustments,
-            request.min_h,
-            request.max_h,
-            request.min_v,
-            request.max_v,
-        )
-    )
 
 
 def masked_url(url: str) -> str:
