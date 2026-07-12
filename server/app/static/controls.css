@@ -143,8 +143,22 @@ button {
   color: #eee;
   cursor: pointer;
 }
+.record-row {
+  display: grid;
+  grid-template-columns: 100px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+.record-fps {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 6px;
+  align-items: center;
+  font-size: 12px;
+  color: #ddd;
+}
 #record {
-  width: 100px;
+  width: 100%;
 }
 button:disabled,
 input:disabled {

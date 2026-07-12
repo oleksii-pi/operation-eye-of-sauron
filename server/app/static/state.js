@@ -16,6 +16,7 @@ const ui = {
   motionSizeValue: document.querySelector("#motionSizeValue"),
   streamImage: document.querySelector("#streamImage"),
   record: document.querySelector("#record"),
+  recordFps: document.querySelector("#recordFps"),
   recordStatus: document.querySelector("#recordStatus"),
   powerAddress: document.querySelector("#powerAddress"),
   powerOn: document.querySelector("#powerOn"),

@@ -53,6 +53,10 @@ class MotionRequest(BaseModel):
     enabled: bool
 
 
+class RecordingRequest(BaseModel):
+    fps: float = 20.0
+
+
 class LightRequest(BaseModel):
     enabled: bool
     address: str = ""
@@ -115,8 +119,9 @@ def start_latency() -> JSONResponse:
 
 
 @app.post("/api/recording/start")
-def start_recording() -> JSONResponse:
-    return JSONResponse(camera.start_recording())
+def start_recording(request: RecordingRequest | None = None) -> JSONResponse:
+    fps = min(60.0, max(1.0, request.fps if request else 20.0))
+    return JSONResponse(camera.start_recording(fps))
 
 
 @app.post("/api/recording/stop")

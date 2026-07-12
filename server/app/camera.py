@@ -93,17 +93,17 @@ class CameraStream:
         with self._lock:
             return {"status": self._status, "rtsp_url_set": str(bool(self.rtsp_url))}
 
-    def start_recording(self) -> dict[str, str | bool]:
+    def start_recording(self, fps: float | None = None) -> dict[str, str | bool | float]:
         if not self.recorder:
             return {"recording": False, "file": ""}
-        return self.recorder.start()
+        return self.recorder.start(fps)
 
-    def stop_recording(self) -> dict[str, str | bool]:
+    def stop_recording(self) -> dict[str, str | bool | float]:
         if not self.recorder:
             return {"recording": False, "file": ""}
         return self.recorder.stop()
 
-    def recording_info(self) -> dict[str, str | bool]:
+    def recording_info(self) -> dict[str, str | bool | float]:
         if not self.recorder:
             return {"recording": False, "file": ""}
         return self.recorder.info()

@@ -112,14 +112,24 @@ function renderRecording(file, error) {
 }
 
 function applyRecording(data) {
-  state.isRecording = Boolean(data.recording);
+  const isRecording = Boolean(data.recording);
+  state.isRecording = isRecording;
+  if (isRecording && data.fps) ui.recordFps.value = data.fps;
+  ui.recordFps.disabled = isRecording;
   renderRecording(data.file, data.error || "");
 }
 
 function toggleRecording() {
   const path = state.isRecording ? "/api/recording/stop" : "/api/recording/start";
+  const options = state.isRecording
+    ? { method: "POST" }
+    : {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fps: Number(ui.recordFps.value) || 20 }),
+      };
   ui.record.disabled = true;
-  fetch(path, { method: "POST" })
+  fetch(path, options)
     .then((response) => {
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       return response.json();

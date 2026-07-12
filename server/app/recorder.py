@@ -16,17 +16,19 @@ class FrameRecorder:
         self._writer: cv2.VideoWriter | None = None
         self._last_frame_at = 0.0
 
-    def start(self) -> dict[str, str | bool]:
+    def start(self, fps: float | None = None) -> dict[str, str | bool | float]:
         with self._lock:
             if self._path:
                 return self.info()
+            if fps is not None:
+                self.fps = fps
             self.directory.mkdir(parents=True, exist_ok=True)
             self._path = self._next_path()
             self._path.touch(exist_ok=False)
             self._last_frame_at = 0.0
             return self.info()
 
-    def stop(self) -> dict[str, str | bool]:
+    def stop(self) -> dict[str, str | bool | float]:
         with self._lock:
             self._release()
             self._path = None
@@ -47,10 +49,11 @@ class FrameRecorder:
             self._writer.write(frame)
             self._last_frame_at = now
 
-    def info(self) -> dict[str, str | bool]:
+    def info(self) -> dict[str, str | bool | float]:
         return {
             "recording": bool(self._path),
             "file": str(self._path) if self._path else "",
+            "fps": self.fps,
         }
 
     def _release(self) -> None:
