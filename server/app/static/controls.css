@@ -160,6 +160,14 @@ button {
 #record {
   width: 100%;
 }
+.pulse-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 58px 24px;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+  color: #ddd;
+}
 button:disabled,
 input:disabled {
   opacity: 0.65;

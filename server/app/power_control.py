@@ -11,7 +11,7 @@ class PowerControl:
         self._enabled_until = 0.0
         self._error = ""
 
-    def info(self) -> dict[str, bool | str]:
+    def info(self) -> dict[str, bool | int | str]:
         self._expire()
         return {
             "configured": bool(self.server_ip),
@@ -19,6 +19,7 @@ class PowerControl:
             "error": self._error,
             "protocol": "udp",
             "address": self.address,
+            "on_ms": self.on_ms,
         }
 
     @property
@@ -27,18 +28,20 @@ class PowerControl:
             return ""
         return f"{self.server_ip}:{self.udp_port}"
 
-    def set_enabled(self, enabled: bool, address: str) -> dict[str, bool | str]:
+    def set_enabled(self, enabled: bool, address: str, on_ms: int | None = None) -> dict[str, bool | int | str]:
         if not self._set_address(address):
             return self.info()
         if not self.server_ip:
             self._error = "LED controller UDP address is not configured"
             return self.info()
 
-        command = f"on:{self.on_ms}" if enabled else "off"
+        duration_ms = self._clamp_on_ms(on_ms, self.on_ms)
+        command = f"on:{duration_ms}" if enabled else "off"
         try:
             self._send(command)
             self._enabled = enabled
-            self._enabled_until = time.monotonic() + (self.on_ms / 1000) if enabled else 0.0
+            self.on_ms = duration_ms
+            self._enabled_until = time.monotonic() + (duration_ms / 1000) if enabled else 0.0
             self._error = ""
         except OSError as exc:
             self._error = str(exc)
@@ -64,6 +67,12 @@ class PowerControl:
             sock.settimeout(0.1)
             for _ in range(3):
                 sock.sendto(payload, (self.server_ip, self.udp_port))
+
+    @staticmethod
+    def _clamp_on_ms(on_ms: int | None, default_ms: int) -> int:
+        if on_ms is None:
+            return default_ms
+        return min(1000000, max(1000, int(on_ms)))
 
     def _expire(self) -> None:
         if self._enabled and time.monotonic() >= self._enabled_until:

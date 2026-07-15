@@ -29,7 +29,7 @@ camera = CameraStream(
     jpeg_quality=settings.jpeg_quality,
     fps=settings.stream_fps,
     detector=detector,
-    recorder=FrameRecorder(recordings_dir, fps=20.0),
+    recorder=FrameRecorder(recordings_dir, fps=4.0),
 )
 direction = CameraDirection(settings.rtsp_url, settings.onvif_port)
 latency = LatencyProbe(camera, direction)
@@ -54,12 +54,13 @@ class MotionRequest(BaseModel):
 
 
 class RecordingRequest(BaseModel):
-    fps: float = 20.0
+    fps: float = 4.0
 
 
 class LightRequest(BaseModel):
     enabled: bool
     address: str = ""
+    on_ms: int | None = None
 
 
 @app.on_event("startup")
@@ -120,7 +121,7 @@ def start_latency() -> JSONResponse:
 
 @app.post("/api/recording/start")
 def start_recording(request: RecordingRequest | None = None) -> JSONResponse:
-    fps = min(60.0, max(1.0, request.fps if request else 20.0))
+    fps = min(60.0, max(1.0, request.fps if request else 4.0))
     return JSONResponse(camera.start_recording(fps))
 
 
@@ -146,12 +147,12 @@ def set_motion(request: MotionRequest) -> JSONResponse:
 
 @app.post("/api/light")
 def set_light(request: LightRequest) -> JSONResponse:
-    return JSONResponse(light_controller.set_enabled(request.enabled, request.address))
+    return JSONResponse(light_controller.set_enabled(request.enabled, request.address, request.on_ms))
 
 
 @app.post("/api/power")
 def set_power(request: LightRequest) -> JSONResponse:
-    return JSONResponse(light_controller.set_enabled(request.enabled, request.address))
+    return JSONResponse(light_controller.set_enabled(request.enabled, request.address, request.on_ms))
 
 
 def masked_url(url: str) -> str:

@@ -63,6 +63,21 @@ function resetMotionSoundState() {
   stopMotionSounds();
 }
 
+function clampRecordFps(value) {
+  const min = Number(ui.recordFps.min) || 1;
+  const max = Number(ui.recordFps.max) || 60;
+  return Math.max(min, Math.min(max, Number(value) || 4));
+}
+
+function loadRecordFps() {
+  ui.recordFps.value = clampRecordFps(localStorage.getItem(recordFpsStorageKey) || ui.recordFps.value);
+}
+
+function saveRecordFps() {
+  ui.recordFps.value = clampRecordFps(ui.recordFps.value);
+  localStorage.setItem(recordFpsStorageKey, ui.recordFps.value);
+}
+
 function toggleMotion() {
   const enabled = ui.motionOn.checked;
   ui.motionOn.disabled = true;
@@ -114,19 +129,18 @@ function renderRecording(file, error) {
 function applyRecording(data) {
   const isRecording = Boolean(data.recording);
   state.isRecording = isRecording;
-  if (isRecording && data.fps) ui.recordFps.value = data.fps;
-  ui.recordFps.disabled = isRecording;
   renderRecording(data.file, data.error || "");
 }
 
 function toggleRecording() {
+  saveRecordFps();
   const path = state.isRecording ? "/api/recording/stop" : "/api/recording/start";
   const options = state.isRecording
     ? { method: "POST" }
     : {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fps: Number(ui.recordFps.value) || 20 }),
+        body: JSON.stringify({ fps: clampRecordFps(ui.recordFps.value) }),
       };
   ui.record.disabled = true;
   fetch(path, options)

@@ -20,6 +20,7 @@ const ui = {
   recordStatus: document.querySelector("#recordStatus"),
   powerAddress: document.querySelector("#powerAddress"),
   powerOn: document.querySelector("#powerOn"),
+  powerSeconds: document.querySelector("#powerSeconds"),
   powerStatus: document.querySelector("#powerStatus"),
   latencyValue: document.querySelector("#latencyValue"),
   latencyStart: document.querySelector("#latencyStart"),
@@ -30,6 +31,7 @@ const state = {
   motionTimer: 0,
   isRecording: false,
   motionSoundEnabled: false,
+  powerSecondsTouched: false,
   motionBoxCount: 0,
   activeMotionSounds: new Set(),
   motionSound: new Audio("/static/mouse-click.mp3"),
@@ -38,7 +40,9 @@ const state = {
 const streamUrl = "/stream.mjpg";
 const limitStorageKey = "cameraLimits";
 const powerAddressStorageKey = "powerUdpAddress";
+const powerSecondsStorageKey = "powerSeconds";
 const motionSoundStorageKey = "motionSoundEnabled";
+const recordFpsStorageKey = "recordFps";
 const limitInputs = [ui.minH, ui.maxH, ui.minV, ui.maxV];
 
 function clamp(value, min = -100, max = 100) {

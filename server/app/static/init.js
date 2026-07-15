@@ -1,6 +1,8 @@
 loadLimits();
 loadPowerAddress();
+loadPowerSeconds();
 loadMotionSound();
+loadRecordFps();
 centerDirection();
 bindEvents();
 ui.streamImage.src = streamUrl;

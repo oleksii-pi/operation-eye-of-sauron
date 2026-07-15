@@ -3,6 +3,9 @@ function applyPower(data) {
     ui.powerAddress.value = data.address;
     savePowerAddress();
   }
+  if (data.on_ms && !state.powerSecondsTouched && !localStorage.getItem(powerSecondsStorageKey)) {
+    ui.powerSeconds.value = clampPulseSeconds(Math.round(Number(data.on_ms) / 1000));
+  }
   ui.powerStatus.textContent = data.error || (data.enabled ? "Light pulse sent" : "Ready");
   ui.powerStatus.title = ui.powerStatus.textContent;
 }
@@ -13,6 +16,20 @@ function loadPowerAddress() {
 
 function savePowerAddress() {
   localStorage.setItem(powerAddressStorageKey, ui.powerAddress.value.trim());
+}
+
+function clampPulseSeconds(value) {
+  return Math.max(1, Math.min(1000, Number(value) || 1));
+}
+
+function loadPowerSeconds() {
+  ui.powerSeconds.value = clampPulseSeconds(localStorage.getItem(powerSecondsStorageKey) || ui.powerSeconds.value);
+}
+
+function savePowerSeconds() {
+  state.powerSecondsTouched = true;
+  ui.powerSeconds.value = clampPulseSeconds(ui.powerSeconds.value);
+  localStorage.setItem(powerSecondsStorageKey, ui.powerSeconds.value);
 }
 
 function applyLatency(data) {
@@ -59,14 +76,17 @@ function startLatency() {
 function flashPower() {
   const address = ui.powerAddress.value.trim();
   savePowerAddress();
+  savePowerSeconds();
   if (!address) {
     ui.powerStatus.textContent = "LED controller UDP address is required";
     ui.powerStatus.title = ui.powerStatus.textContent;
     return;
   }
+  const onMs = clampPulseSeconds(ui.powerSeconds.value) * 1000;
   ui.powerOn.disabled = true;
   ui.powerAddress.disabled = true;
-  postJson("/api/light", { enabled: true, address })
+  ui.powerSeconds.disabled = true;
+  postJson("/api/light", { enabled: true, address, on_ms: onMs })
     .then((response) => {
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       return response.json();
@@ -79,6 +99,7 @@ function flashPower() {
     .finally(() => {
       ui.powerOn.disabled = false;
       ui.powerAddress.disabled = false;
+      ui.powerSeconds.disabled = false;
     });
 }
 
@@ -100,10 +121,13 @@ function bindEvents() {
   ui.motionSizeDown.addEventListener("click", () => adjustMotionSize(-1));
   ui.motionSizeUp.addEventListener("click", () => adjustMotionSize(1));
   ui.record.addEventListener("click", toggleRecording);
+  ui.recordFps.addEventListener("change", saveRecordFps);
   ui.latencyStart.addEventListener("click", startLatency);
   ui.motionOn.addEventListener("change", toggleMotion);
   ui.motionSound.addEventListener("change", toggleMotionSound);
   ui.powerAddress.addEventListener("change", savePowerAddress);
+  ui.powerSeconds.addEventListener("input", savePowerSeconds);
+  ui.powerSeconds.addEventListener("change", savePowerSeconds);
   ui.powerOn.addEventListener("click", flashPower);
   document.addEventListener("keydown", handleKeydown);
 }

@@ -46,7 +46,7 @@
           <button id="record" type="button">Record</button>
           <label class="record-fps" for="recordFps">
             <span>FPS</span>
-            <input id="recordFps" class="limit-input" type="number" min="1" max="60" step="1" value="20">
+            <input id="recordFps" class="limit-input" type="number" min="1" max="60" step="1" value="4">
           </label>
         </div>
         <div id="recordStatus" class="record-status">Not recording</div>
@@ -54,7 +54,11 @@
           <span>LED Controller UDP</span>
           <input id="powerAddress" class="limit-input" type="text" placeholder="192.168.0.231:4210" autocomplete="off">
         </label>
-        <button id="powerOn" type="button">Pulse Light</button>
+        <div class="pulse-row">
+          <button id="powerOn" type="button">Pulse</button>
+          <input id="powerSeconds" class="limit-input" type="number" min="1" max="1000" step="1" value="1" aria-label="Light pulse seconds">
+          <span>sec</span>
+        </div>
         <div id="powerStatus" class="power-status"></div>
       </div>
       <div class="direction-controls">
